@@ -64,7 +64,7 @@ export async function fetchDammV2PoolsByMint(
     await attachVesting(normalized, params.baseUrl, params.timeoutMs, params.vestingLimiter ?? limiter);
   }
 
-  return { pools: normalized.slice(0, params.limitPerProtocol), raw: pools };
+  return { pools: normalized, raw: pools };
 }
 
 export function normalizeDammV2Pool(pool: DammV2Pool, inputMint: string): NormalizedPool {

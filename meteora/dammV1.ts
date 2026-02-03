@@ -62,7 +62,7 @@ export async function fetchDammV1PoolsByMint(
 
   const normalized = pools.map((pool) => normalizeDammV1Pool(pool, params.mint));
 
-  return { pools: normalized.slice(0, params.limitPerProtocol), raw: pools };
+  return { pools: normalized, raw: pools };
 }
 
 export function normalizeDammV1Pool(pool: Record<string, unknown>, inputMint: string): NormalizedPool {

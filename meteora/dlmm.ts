@@ -65,7 +65,7 @@ export async function fetchDlmmPairsByMint(
     await attachDlmmLocks(pools, params.baseUrl, params.timeoutMs, limiter);
   }
 
-  return { pools: pools.slice(0, params.limitPerProtocol), raw: pairs };
+  return { pools, raw: pairs };
 }
 
 export function normalizeDlmmPair(pair: DlmmPair, inputMint: string): NormalizedPool {
