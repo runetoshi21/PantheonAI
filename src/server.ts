@@ -4,6 +4,7 @@ import { RaydiumApiError } from "./core/errors";
 import { raydiumRouter } from "./routes/raydium";
 import { pumpswapRouter } from "./routes/pumpswap";
 import { liquidityRouter } from "./routes/liquidity";
+import { meteoraRouter } from "./routes/meteora";
 
 const app = express();
 app.use(express.json());
@@ -12,6 +13,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/v1/raydium", raydiumRouter);
 app.use("/api/pumpswap", pumpswapRouter);
 app.use("/v1/liquidity", liquidityRouter);
+app.use("/v1/meteora", meteoraRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err instanceof RaydiumApiError) {
