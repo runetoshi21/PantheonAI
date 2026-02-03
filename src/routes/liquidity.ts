@@ -21,6 +21,15 @@ router.get("/by-mint/:mint", async (req, res, next) => {
       },
       pumpswap: {
         includeConfigs: parseBoolean(req.query.pumpswapIncludeConfigs)
+      },
+      meteora: {
+        cluster: parseCluster(req.query.meteoraCluster),
+        includeUnknown: parseBoolean(req.query.meteoraIncludeUnknown),
+        includeVesting: parseBoolean(req.query.meteoraIncludeVesting),
+        includeDlmmLocks: parseBoolean(req.query.meteoraIncludeDlmmLocks),
+        minTvlUsd: parseNumber(req.query.meteoraMinTvlUsd),
+        limitPerProtocol: parseNumber(req.query.meteoraLimitPerProtocol),
+        timeoutMs: parseNumber(req.query.meteoraTimeoutMs)
       }
     });
 
@@ -94,6 +103,22 @@ function parseBoolean(value: unknown): boolean | undefined {
   if (str === "true" || str === "1") return true;
   if (str === "false" || str === "0") return false;
   throw new BadRequestError(`Invalid boolean: ${str}`);
+}
+
+function parseNumber(value: unknown): number | undefined {
+  if (value == null || value === "") return undefined;
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    throw new BadRequestError(`Invalid number: ${value}`);
+  }
+  return num;
+}
+
+function parseCluster(value: unknown): "mainnet-beta" | "devnet" | undefined {
+  if (!value) return undefined;
+  const str = String(value);
+  if (str === "mainnet-beta" || str === "devnet") return str;
+  throw new BadRequestError(`Invalid meteoraCluster: ${str}`);
 }
 
 export const liquidityRouter = router;

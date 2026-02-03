@@ -1,7 +1,7 @@
 import { BadRequestError } from "../../core/errors";
 import type { LiquidityProtocol } from "./types";
 
-const allowedProtocols: LiquidityProtocol[] = ["raydium", "pumpswap"];
+const allowedProtocols: LiquidityProtocol[] = ["raydium", "pumpswap", "meteora"];
 
 export function parseProtocols(value?: string): LiquidityProtocol[] | undefined {
   if (!value) return undefined;

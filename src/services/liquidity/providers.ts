@@ -1,5 +1,6 @@
 import { getCanonicalPumpSwapPoolSnapshot } from "../../../pumpswap/poolSnapshot";
 import { getRaydiumPoolsByMint } from "../../../raydium/raydiumPoolsService";
+import { getMeteoraPoolsByMint, resolveDefaults } from "../../../meteora";
 import type {
   LiquidityOverviewOptions,
   LiquidityProtocol,
@@ -38,9 +39,32 @@ export const pumpswapProvider: LiquidityProvider = {
   }
 };
 
+export const meteoraProvider: LiquidityProvider = {
+  id: "meteora",
+  fetch: async (mint, opts) => {
+    try {
+      const params = resolveDefaults({
+        mint,
+        cluster: opts.meteora?.cluster,
+        includeUnknown: opts.meteora?.includeUnknown,
+        includeVesting: opts.meteora?.includeVesting,
+        includeDlmmLocks: opts.meteora?.includeDlmmLocks,
+        minTvlUsd: opts.meteora?.minTvlUsd,
+        limitPerProtocol: opts.meteora?.limitPerProtocol,
+        timeoutMs: opts.meteora?.timeoutMs
+      });
+      const data = await getMeteoraPoolsByMint(params);
+      return { protocol: "meteora", ok: true, data };
+    } catch (err) {
+      return { protocol: "meteora", ok: false, error: formatError(err) };
+    }
+  }
+};
+
 const providerMap: Record<LiquidityProtocol, LiquidityProvider> = {
   raydium: raydiumProvider,
-  pumpswap: pumpswapProvider
+  pumpswap: pumpswapProvider,
+  meteora: meteoraProvider
 };
 
 export function resolveProviders(protocols?: LiquidityProtocol[]): LiquidityProvider[] {
