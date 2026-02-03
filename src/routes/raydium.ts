@@ -4,6 +4,33 @@ import { getRaydiumPoolsByMint } from "../integrations/raydium/raydiumPoolsServi
 
 const router = Router();
 
+type SortParam =
+  | "default"
+  | "liquidity"
+  | "volume24h"
+  | "volume7d"
+  | "volume30d"
+  | "fee24h"
+  | "fee7d"
+  | "fee30d"
+  | "apr24h"
+  | "apr7d"
+  | "apr30d";
+
+const allowedSorts: SortParam[] = [
+  "default",
+  "liquidity",
+  "volume24h",
+  "volume7d",
+  "volume30d",
+  "fee24h",
+  "fee7d",
+  "fee30d",
+  "apr24h",
+  "apr7d",
+  "apr30d"
+];
+
 router.get("/pools/by-mint/:mint", async (req, res, next) => {
   try {
     const { mint } = req.params;
@@ -37,39 +64,13 @@ function parsePoolType(value: unknown): "all" | "standard" | "concentrated" {
   throw new BadRequestError(`Invalid poolType: ${str}`);
 }
 
-function parseSort(
-  value: unknown
-):
-  | "default"
-  | "liquidity"
-  | "volume24h"
-  | "volume7d"
-  | "volume30d"
-  | "fee24h"
-  | "fee7d"
-  | "fee30d"
-  | "apr24h"
-  | "apr7d"
-  | "apr30d" {
+function parseSort(value: unknown): SortParam {
   if (!value) return "liquidity";
-  const str = String(value);
-  const allowed = new Set([
-    "default",
-    "liquidity",
-    "volume24h",
-    "volume7d",
-    "volume30d",
-    "fee24h",
-    "fee7d",
-    "fee30d",
-    "apr24h",
-    "apr7d",
-    "apr30d"
-  ]);
-  if (!allowed.has(str)) {
+  const str = String(value) as SortParam;
+  if (!allowedSorts.includes(str)) {
     throw new BadRequestError(`Invalid sort: ${str}`);
   }
-  return str as typeof allowed extends Set<infer U> ? U : never;
+  return str;
 }
 
 function parseOrder(value: unknown): "asc" | "desc" {

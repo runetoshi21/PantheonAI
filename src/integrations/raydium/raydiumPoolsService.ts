@@ -1,5 +1,5 @@
 import { PoolFetchType, type PoolKeys } from "@raydium-io/raydium-sdk-v2";
-import { AccountLayout, u64 } from "@solana/spl-token";
+import { AccountLayout } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { LRUCache } from "lru-cache";
 import { raydiumConfig } from "../../config/raydium";
@@ -57,6 +57,7 @@ export async function getRaydiumPoolsByMint(
   const poolType = opts.poolType ?? "all";
   const sort = opts.sort ?? "liquidity";
   const order = opts.order ?? "desc";
+  const apiSort = sort === "default" ? undefined : sort;
 
   const cacheKey = `pools:${mint}:${poolType}:${sort}:${order}`;
   const cached = poolsCache.get(cacheKey);
@@ -69,7 +70,7 @@ export async function getRaydiumPoolsByMint(
     };
   }
 
-  const pools = await fetchPoolsByMint(mint, { poolType, sort, order });
+  const pools = await fetchPoolsByMint(mint, { poolType, sort: apiSort, order });
   const response: RaydiumPoolsByMintResponseDto = {
     inputMint: mint,
     fetchedAtUnixMs: Date.now(),
@@ -84,9 +85,17 @@ export async function getRaydiumPoolsByMint(
   };
 }
 
+type ApiSort = Exclude<GetRaydiumPoolsByMintOptions["sort"], "default">;
+
+type FetchPoolsOptions = {
+  poolType: "all" | "concentrated" | "standard";
+  sort?: ApiSort;
+  order: "asc" | "desc";
+};
+
 async function fetchPoolsByMint(
   mint: string,
-  opts: Required<Pick<GetRaydiumPoolsByMintOptions, "poolType" | "sort" | "order">>
+  opts: FetchPoolsOptions
 ): Promise<RaydiumPoolDto[]> {
   const raydium = await getRaydiumClient();
 
@@ -288,7 +297,7 @@ function normalizeKindFromType(type: unknown): RaydiumPoolKind | undefined {
 }
 
 function deriveKindFromKeys(keys: PoolKeys): RaydiumPoolKind {
-  const anyKeys = keys as Record<string, unknown>;
+  const anyKeys = keys as unknown as Record<string, unknown>;
   if (anyKeys.baseVault && anyKeys.quoteVault) return "standard";
   if (anyKeys.vaultA && anyKeys.vaultB) return "cpmm";
   const vault = anyKeys.vault as Record<string, unknown> | undefined;
@@ -297,7 +306,7 @@ function deriveKindFromKeys(keys: PoolKeys): RaydiumPoolKind {
 }
 
 function extractVault(keys: PoolKeys, side: "A" | "B"): string | undefined {
-  const anyKeys = keys as Record<string, unknown>;
+  const anyKeys = keys as unknown as Record<string, unknown>;
   if (anyKeys.baseVault && anyKeys.quoteVault) {
     return String(side === "A" ? anyKeys.baseVault : anyKeys.quoteVault);
   }
@@ -359,7 +368,7 @@ async function fetchVaultBalances(
       if (!info) continue;
       const address = chunk[idx];
       const decoded = AccountLayout.decode(info.data);
-      const amountRaw = u64.fromBuffer(decoded.amount).toString();
+      const amountRaw = decoded.amount.toString();
       const decimalsForVault = decimals.get(address) ?? 0;
       balances.set(address, {
         address,
