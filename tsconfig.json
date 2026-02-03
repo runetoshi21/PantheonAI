@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "raydium", "pumpswap", "tests"]
+  "include": ["src", "raydium", "pumpswap", "meteora", "tests"]
 }
