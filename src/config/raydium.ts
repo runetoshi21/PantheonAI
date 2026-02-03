@@ -7,7 +7,8 @@ const schema = z.object({
   RAYDIUM_API_BASE_HOST: z.string().optional(),
   RAYDIUM_POOLS_CACHE_TTL_MS: z.coerce.number().int().positive().default(15000),
   RAYDIUM_POOL_KEYS_CACHE_TTL_MS: z.coerce.number().int().positive().default(3600000),
-  RAYDIUM_MAX_PAGES: z.coerce.number().int().positive().default(5)
+  RAYDIUM_MAX_PAGES: z.coerce.number().int().positive().default(5),
+  RAYDIUM_MIN_TVL_USD: z.coerce.number().nonnegative().default(5000)
 });
 
 const parsed = schema.safeParse({
@@ -17,7 +18,8 @@ const parsed = schema.safeParse({
   RAYDIUM_API_BASE_HOST: process.env.RAYDIUM_API_BASE_HOST,
   RAYDIUM_POOLS_CACHE_TTL_MS: process.env.RAYDIUM_POOLS_CACHE_TTL_MS,
   RAYDIUM_POOL_KEYS_CACHE_TTL_MS: process.env.RAYDIUM_POOL_KEYS_CACHE_TTL_MS,
-  RAYDIUM_MAX_PAGES: process.env.RAYDIUM_MAX_PAGES
+  RAYDIUM_MAX_PAGES: process.env.RAYDIUM_MAX_PAGES,
+  RAYDIUM_MIN_TVL_USD: process.env.RAYDIUM_MIN_TVL_USD
 });
 
 if (!parsed.success) {
@@ -36,5 +38,6 @@ export const raydiumConfig = {
   RAYDIUM_API_BASE_HOST: baseHost,
   RAYDIUM_POOLS_CACHE_TTL_MS: env.RAYDIUM_POOLS_CACHE_TTL_MS,
   RAYDIUM_POOL_KEYS_CACHE_TTL_MS: env.RAYDIUM_POOL_KEYS_CACHE_TTL_MS,
-  RAYDIUM_MAX_PAGES: env.RAYDIUM_MAX_PAGES
+  RAYDIUM_MAX_PAGES: env.RAYDIUM_MAX_PAGES,
+  RAYDIUM_MIN_TVL_USD: env.RAYDIUM_MIN_TVL_USD
 };
