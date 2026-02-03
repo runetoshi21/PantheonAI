@@ -45,9 +45,7 @@ function parsePoolType(value: unknown): "all" | "standard" | "concentrated" | un
   throw new BadRequestError(`Invalid raydiumPoolType: ${str}`);
 }
 
-function parseSort(
-  value: unknown
-):
+type RaydiumSort =
   | "default"
   | "liquidity"
   | "volume24h"
@@ -58,27 +56,29 @@ function parseSort(
   | "fee30d"
   | "apr24h"
   | "apr7d"
-  | "apr30d"
-  | undefined {
+  | "apr30d";
+
+const allowedSorts: RaydiumSort[] = [
+  "default",
+  "liquidity",
+  "volume24h",
+  "volume7d",
+  "volume30d",
+  "fee24h",
+  "fee7d",
+  "fee30d",
+  "apr24h",
+  "apr7d",
+  "apr30d"
+];
+
+function parseSort(value: unknown): RaydiumSort | undefined {
   if (!value) return undefined;
-  const str = String(value);
-  const allowed = new Set([
-    "default",
-    "liquidity",
-    "volume24h",
-    "volume7d",
-    "volume30d",
-    "fee24h",
-    "fee7d",
-    "fee30d",
-    "apr24h",
-    "apr7d",
-    "apr30d"
-  ]);
-  if (!allowed.has(str)) {
+  const str = String(value) as RaydiumSort;
+  if (!allowedSorts.includes(str)) {
     throw new BadRequestError(`Invalid raydiumSort: ${str}`);
   }
-  return str as typeof allowed extends Set<infer U> ? U : never;
+  return str;
 }
 
 function parseOrder(value: unknown): "asc" | "desc" | undefined {
