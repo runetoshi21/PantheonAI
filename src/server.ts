@@ -2,12 +2,14 @@ import "dotenv/config";
 import express from "express";
 import { RaydiumApiError } from "./core/errors";
 import { raydiumRouter } from "./routes/raydium";
+import { pumpswapRouter } from "./routes/pumpswap";
 
 const app = express();
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/v1/raydium", raydiumRouter);
+app.use("/api/pumpswap", pumpswapRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err instanceof RaydiumApiError) {
