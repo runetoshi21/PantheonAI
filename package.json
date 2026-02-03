@@ -11,9 +11,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@pump-fun/pump-swap-sdk": "^1.13.0",
     "@raydium-io/raydium-sdk-v2": "^0.1.105-alpha",
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.2",
+    "bn.js": "^5.2.2",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
     "lru-cache": "^10.2.2",
