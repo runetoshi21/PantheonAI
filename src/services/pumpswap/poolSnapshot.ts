@@ -213,6 +213,6 @@ function stripConfigs(
   snapshot: PumpSwapPoolSnapshot | PumpSwapPoolNotFound
 ): PumpSwapPoolSnapshot | PumpSwapPoolNotFound {
   if (!snapshot.found) return snapshot;
-  const { configs, ...rest } = snapshot;
+  const { configs: _configs, ...rest } = snapshot;
   return rest as PumpSwapPoolSnapshot;
 }
