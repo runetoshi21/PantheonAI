@@ -5,6 +5,8 @@ import { LRUCache } from "lru-cache";
 import { raydiumConfig } from "../../config/raydium";
 import { formatAmount } from "../../core/format";
 import { InvalidMintError, RaydiumApiError } from "../../core/errors";
+import { getJupPrices } from "../jup/jupPriceClient";
+import { collectPriceMints, getPoolUsdLiquidity } from "./liquidity";
 import {
   type RaydiumPoolDto,
   type RaydiumPoolKeysDto,
@@ -59,7 +61,8 @@ export async function getRaydiumPoolsByMint(
   const order = opts.order ?? "desc";
   const apiSort = sort === "default" ? undefined : sort;
 
-  const cacheKey = `pools:${mint}:${poolType}:${sort}:${order}`;
+  const minUsd = raydiumConfig.RAYDIUM_MIN_TVL_USD;
+  const cacheKey = `pools:${mint}:${poolType}:${sort}:${order}:${minUsd}`;
   const cached = poolsCache.get(cacheKey);
   if (cached) {
     const clonedPools = cached.pools.map(clonePoolDto);
@@ -70,7 +73,9 @@ export async function getRaydiumPoolsByMint(
     };
   }
 
-  const pools = await fetchPoolsByMint(mint, { poolType, sort: apiSort, order });
+  let pools = await fetchPoolsByMint(mint, { poolType, sort: apiSort, order });
+  pools = await filterPoolsByLiquidity(pools, minUsd);
+
   const response: RaydiumPoolsByMintResponseDto = {
     inputMint: mint,
     fetchedAtUnixMs: Date.now(),
@@ -207,6 +212,21 @@ async function fetchPoolKeys(ids: string[]): Promise<Map<string, PoolKeys>> {
   }
 
   return result;
+}
+
+async function filterPoolsByLiquidity(
+  pools: RaydiumPoolDto[],
+  minUsd: number
+): Promise<RaydiumPoolDto[]> {
+  if (minUsd <= 0) return pools;
+
+  let prices = new Map<string, number>();
+  const priceMints = collectPriceMints(pools);
+  if (priceMints.length) {
+    prices = await getJupPrices(priceMints);
+  }
+
+  return pools.filter((pool) => getPoolUsdLiquidity(pool, prices) >= minUsd);
 }
 
 function mapPoolInfoToDto(pool: Record<string, unknown>): RaydiumPoolDto {
