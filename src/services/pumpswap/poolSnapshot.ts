@@ -24,7 +24,9 @@ const globalConfigCache = new LRUCache<string, ReturnType<typeof PUMP_AMM_SDK.de
   ttl: 60000
 });
 
-const feeConfigCache = new LRUCache<string, ReturnType<typeof PUMP_AMM_SDK.decodeFeeConfig> | null>({
+type FeeConfigType = ReturnType<typeof PUMP_AMM_SDK.decodeFeeConfig>;
+
+const feeConfigCache = new LRUCache<string, FeeConfigType | null>({
   max: 1,
   ttl: 60000
 });
