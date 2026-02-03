@@ -6,6 +6,14 @@ export class InvalidMintError extends Error {
   }
 }
 
+export class BadRequestError extends Error {
+  readonly code = "BAD_REQUEST";
+  constructor(message: string) {
+    super(message);
+    this.name = "BadRequestError";
+  }
+}
+
 export class RaydiumApiError extends Error {
   readonly code = "RAYDIUM_API_ERROR";
   constructor(message: string, public cause?: unknown) {
