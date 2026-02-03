@@ -25,8 +25,9 @@ const globalConfigCache = new LRUCache<string, ReturnType<typeof PUMP_AMM_SDK.de
 });
 
 type FeeConfigType = ReturnType<typeof PUMP_AMM_SDK.decodeFeeConfig>;
+type FeeConfigCacheValue = FeeConfigType | { kind: "null" };
 
-const feeConfigCache = new LRUCache<string, FeeConfigType | null>({
+const feeConfigCache = new LRUCache<string, FeeConfigCacheValue>({
   max: 1,
   ttl: 60000
 });
@@ -203,9 +204,14 @@ function decodeGlobalConfig(accountInfo: Parameters<typeof PUMP_AMM_SDK.decodeGl
 }
 
 function decodeFeeConfig(accountInfo: Parameters<typeof PUMP_AMM_SDK.decodeFeeConfig>[0] | null) {
-  if (!accountInfo) return null;
+  if (!accountInfo) {
+    feeConfigCache.set("fee", { kind: "null" });
+    return null;
+  }
   const cached = feeConfigCache.get("fee");
-  if (cached) return cached;
+  if (cached) {
+    return "kind" in cached ? null : cached;
+  }
   const decoded = PUMP_AMM_SDK.decodeFeeConfig(accountInfo);
   feeConfigCache.set("fee", decoded);
   return decoded;
