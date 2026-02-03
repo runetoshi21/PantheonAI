@@ -1,5 +1,5 @@
 import { createLimiter, getJsonWithLimit, type Limiter } from "./http";
-import { arrayOf, asRecord, toNumber, toStringAmount, toStringAmountOrNull, toStringValue } from "./utils";
+import { arrayOf, asRecord, toNumber, toStringAmount, toStringValue } from "./utils";
 import type { DammV1PoolsResponse, NormalizedPool } from "./types";
 
 export type DammV1FetchParams = {
