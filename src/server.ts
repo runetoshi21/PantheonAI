@@ -19,6 +19,5 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {
-  // eslint-disable-next-line no-console
   console.log(`PantheonAI API listening on :${port}`);
 });
