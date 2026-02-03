@@ -159,7 +159,7 @@ function applyMinTvl(pools: NormalizedPool[], minTvlUsd?: number): NormalizedPoo
   return pools.filter((pool) => pool.metrics.tvlUsd != null && pool.metrics.tvlUsd >= minTvlUsd);
 }
 
-function sortPools(pools: NormalizedPool[]): NormalizedPool[] {
+export function sortPools(pools: NormalizedPool[]): NormalizedPool[] {
   return [...pools].sort((a, b) => {
     const tvlA = a.metrics.tvlUsd ?? -1;
     const tvlB = b.metrics.tvlUsd ?? -1;
@@ -173,7 +173,7 @@ function sortPools(pools: NormalizedPool[]): NormalizedPool[] {
   });
 }
 
-function applyLimitPerProtocol(pools: NormalizedPool[], limit: number): NormalizedPool[] {
+export function applyLimitPerProtocol(pools: NormalizedPool[], limit: number): NormalizedPool[] {
   const counts: Record<NormalizedPoolProtocol, number> = {
     DLMM: 0,
     DAMM_V2: 0,
