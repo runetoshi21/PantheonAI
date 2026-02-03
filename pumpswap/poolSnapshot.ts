@@ -8,9 +8,9 @@ import {
 import { AccountLayout, MintLayout, NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { LRUCache } from "lru-cache";
-import { getSolanaConnection } from "../../solana/connection";
-import { BadRequestError } from "../../core/errors";
-import type { PumpSwapPoolSnapshot, PumpSwapPoolNotFound } from "../../types/pumpswap";
+import { getSolanaConnection } from "../src/solana/connection";
+import { BadRequestError } from "../src/core/errors";
+import type { PumpSwapPoolSnapshot, PumpSwapPoolNotFound } from "../src/types/pumpswap";
 import { divDecimalStrings, formatUnits } from "./bnFormat";
 import { selectFeesBps } from "./fees";
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { BadRequestError } from "../core/errors";
-import { getCanonicalPumpSwapPoolSnapshot } from "../services/pumpswap/poolSnapshot";
+import { getCanonicalPumpSwapPoolSnapshot } from "../../pumpswap/poolSnapshot";
 
 const router = Router();
 
