@@ -1,6 +1,6 @@
 import { Raydium } from "@raydium-io/raydium-sdk-v2";
 import { Connection } from "@solana/web3.js";
-import { raydiumConfig } from "../../config/raydium";
+import { raydiumConfig } from "../src/config/raydium";
 
 let raydiumPromise: Promise<Raydium> | null = null;
 let connection: Connection | null = null;

@@ -2,10 +2,10 @@ import { PoolFetchType, type PoolKeys } from "@raydium-io/raydium-sdk-v2";
 import { AccountLayout } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { LRUCache } from "lru-cache";
-import { raydiumConfig } from "../../config/raydium";
-import { formatAmount } from "../../core/format";
-import { InvalidMintError, RaydiumApiError } from "../../core/errors";
-import { getJupPrices } from "../jup/jupPriceClient";
+import { raydiumConfig } from "../src/config/raydium";
+import { formatAmount } from "../src/core/format";
+import { InvalidMintError, RaydiumApiError } from "../src/core/errors";
+import { getJupPrices } from "./jupPriceClient";
 import { collectPriceMints, getPoolUsdLiquidity } from "./liquidity";
 import {
   type RaydiumPoolDto,

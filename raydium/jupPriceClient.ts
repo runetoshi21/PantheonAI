@@ -1,5 +1,5 @@
 import { LRUCache } from "lru-cache";
-import { jupConfig } from "../../config/jup";
+import { jupConfig } from "../src/config/jup";
 
 const priceCache = new LRUCache<string, number>({
   max: 2000,

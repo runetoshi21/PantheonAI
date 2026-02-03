@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { collectPriceMints, getPoolUsdLiquidity } from "../src/integrations/raydium/liquidity";
-import type { RaydiumPoolDto } from "../src/integrations/raydium/dtos";
+import { collectPriceMints, getPoolUsdLiquidity } from "../raydium/liquidity";
+import type { RaydiumPoolDto } from "../raydium/dtos";
 
 const basePool: RaydiumPoolDto = {
   id: "1",
