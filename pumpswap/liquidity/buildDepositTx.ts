@@ -10,7 +10,8 @@ import {
   ComputeBudgetProgram,
   PublicKey,
   TransactionMessage,
-  VersionedTransaction
+  VersionedTransaction,
+  type TransactionInstruction
 } from "@solana/web3.js";
 import { getSolanaConnection } from "../../src/solana/connection";
 import type {
@@ -88,7 +89,7 @@ export async function buildPumpSwapDepositTx(
     } else {
       return invalidAmount("Invalid deposit mode");
     }
-  } catch (err) {
+  } catch {
     return invalidAmount("Invalid deposit amount");
   }
 
@@ -111,7 +112,7 @@ export async function buildPumpSwapDepositTx(
     slippagePct
   );
 
-  const cbIxs: import("@solana/web3.js").TransactionInstruction[] = [];
+  const cbIxs: TransactionInstruction[] = [];
   if (req.computeBudget?.unitLimit) {
     cbIxs.push(ComputeBudgetProgram.setComputeUnitLimit({ units: req.computeBudget.unitLimit }));
   }
