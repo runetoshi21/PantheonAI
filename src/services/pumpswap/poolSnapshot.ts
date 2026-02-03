@@ -209,10 +209,8 @@ function decodeFeeConfig(accountInfo: Parameters<typeof PUMP_AMM_SDK.decodeFeeCo
   return decoded;
 }
 
-function stripConfigs(
-  snapshot: PumpSwapPoolSnapshot | PumpSwapPoolNotFound
-): PumpSwapPoolSnapshot | PumpSwapPoolNotFound {
+
+function stripConfigs(snapshot: PumpSwapPoolSnapshot | PumpSwapPoolNotFound): PumpSwapPoolSnapshot | PumpSwapPoolNotFound {
   if (!snapshot.found) return snapshot;
-  const { ...rest } = snapshot;
-  return rest as PumpSwapPoolSnapshot;
+  return { ...snapshot, configs: undefined };
 }
