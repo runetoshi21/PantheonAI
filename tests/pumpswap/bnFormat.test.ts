@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { describe, expect, it } from "vitest";
-import { divDecimalStrings, formatUnits } from "../../src/services/pumpswap/bnFormat";
+import { divDecimalStrings, formatUnits } from "../../pumpswap/bnFormat";
 
 describe("formatUnits", () => {
   it("formats decimals", () => {

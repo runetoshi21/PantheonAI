@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { BadRequestError, InvalidMintError } from "../core/errors";
-import { getRaydiumPoolsByMint } from "../integrations/raydium/raydiumPoolsService";
+import { getRaydiumPoolsByMint } from "../../raydium/raydiumPoolsService";
 
 const router = Router();
 

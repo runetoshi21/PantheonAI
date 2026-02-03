@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { describe, expect, it } from "vitest";
-import { selectFeeTier } from "../../src/services/pumpswap/fees";
+import { selectFeeTier } from "../../pumpswap/fees";
 
 const feeTier = (threshold: string) => ({
   marketCapLamportsThreshold: new BN(threshold),
