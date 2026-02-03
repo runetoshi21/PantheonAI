@@ -10,6 +10,7 @@ describe("parseProtocols", () => {
   it("parses known protocols", () => {
     expect(parseProtocols("raydium,pumpswap")).toEqual(["raydium", "pumpswap"]);
     expect(parseProtocols("pumpswap")).toEqual(["pumpswap"]);
+    expect(parseProtocols("meteora,raydium")).toEqual(["meteora", "raydium"]);
   });
 
   it("throws on unknown protocols", () => {

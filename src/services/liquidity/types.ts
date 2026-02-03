@@ -1,8 +1,10 @@
 import type { GetRaydiumPoolsByMintOptions } from "../../../raydium/raydiumPoolsService";
 import type { PumpSwapPoolSnapshot, PumpSwapPoolNotFound } from "../../types/pumpswap";
 import type { RaydiumPoolsByMintResponseDto } from "../../../raydium/dtos";
+import type { GetPoolsByMintResult } from "../../../meteora/types";
+import type { MeteoraCluster } from "../../../meteora/config";
 
-export type LiquidityProtocol = "raydium" | "pumpswap";
+export type LiquidityProtocol = "raydium" | "pumpswap" | "meteora";
 
 export type LiquidityProtocolResult =
   | {
@@ -24,6 +26,16 @@ export type LiquidityProtocolResult =
       protocol: "pumpswap";
       ok: false;
       error: string;
+    }
+  | {
+      protocol: "meteora";
+      ok: true;
+      data: GetPoolsByMintResult;
+    }
+  | {
+      protocol: "meteora";
+      ok: false;
+      error: string;
     };
 
 export interface LiquidityOverviewResponse {
@@ -37,5 +49,14 @@ export interface LiquidityOverviewOptions {
   raydium?: GetRaydiumPoolsByMintOptions;
   pumpswap?: {
     includeConfigs?: boolean;
+  };
+  meteora?: {
+    cluster?: MeteoraCluster;
+    includeUnknown?: boolean;
+    includeVesting?: boolean;
+    includeDlmmLocks?: boolean;
+    minTvlUsd?: number;
+    limitPerProtocol?: number;
+    timeoutMs?: number;
   };
 }

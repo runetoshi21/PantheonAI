@@ -4,6 +4,6 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["src", "raydium", "pumpswap"],
+  "include": ["src", "raydium", "pumpswap", "meteora"],
   "exclude": ["tests"]
 }
