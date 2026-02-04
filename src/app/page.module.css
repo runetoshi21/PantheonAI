@@ -1,0 +1,530 @@
+/* ==========================================================================
+   AGNTIX Hero Page Styles
+   Reference viewport: 2011 × 914px
+   ========================================================================== */
+
+/* Hero Container */
+.hero {
+  position: relative;
+  width: 100vw;
+  /* Fallback */
+  height: 100vh;
+  /* Modern mobile viewport handling */
+  height: 100svh;
+  height: 100dvh;
+  background: #0F0F10;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  /* Padding derived from bounding boxes:
+     Left brand at x=107 → ~5.3%
+     Right button ends at ~2011-1752-155=104 → ~5.2% */
+  padding: calc((39 / 914 * 100dvh) + env(safe-area-inset-top, 0px))
+    calc(104 / 2011 * 100vw)
+    0
+    calc(107 / 2011 * 100vw);
+  z-index: 10;
+}
+
+/* Brand Logo */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandIcon {
+  width: 32px;
+  height: 32px;
+}
+
+.brandText {
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+}
+
+/* Menu Icon - Centered at top */
+.menuIcon {
+  position: absolute;
+  /* Center horizontally: menu center should be at viewport center */
+  left: 50%;
+  transform: translateX(-50%);
+  /* Top position: ~43px from top in 914px viewport */
+  top: calc((43 / 914 * 100dvh) + env(safe-area-inset-top, 0px));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  width: 60px;
+  height: 24px;
+
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.menuLine {
+  display: block;
+  width: 60px;
+  height: 2px;
+  background-color: #FFFFFF;
+}
+
+/* Connect Wallet Button */
+.contactButton {
+  min-width: 165px;
+  height: 40px;
+  padding: 0 24px;
+
+  background: transparent;
+  border: 1px solid #FFFFFF;
+  border-radius: 9999px;
+
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.contactButton:hover {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.contactButton[data-connected="true"] {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.contactButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   SELECTOR ROW
+   ========================================================================== */
+
+.selectorWrap {
+  position: absolute;
+  /* Vertical position at 38% viewport height */
+  top: 38%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  display: grid;
+  justify-items: center;
+  row-gap: 16px;
+  z-index: 5;
+}
+
+.selectorCard {
+  display: grid;
+  justify-items: center;
+  row-gap: 20px;
+  padding: 26px 32px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 10, 12, 0.6);
+  backdrop-filter: blur(8px);
+  width: min(560px, 92vw);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.selectorRow {
+  display: inline-flex;
+  gap: 14px;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(6px);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.selectorButton {
+  min-width: 160px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.selectorButton[data-selected="true"] {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.selectorContent {
+  text-align: center;
+  max-width: 100%;
+  color: #FFFFFF;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  min-height: 88px;
+}
+
+.agentBlock {
+  display: grid;
+  justify-items: center;
+  row-gap: 12px;
+}
+
+.agentNote {
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.copyRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.codeInline {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.copyButton {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #FFFFFF;
+  background: transparent;
+  color: #FFFFFF;
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.openButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid #FFFFFF;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.openButton:hover {
+  background: #FFFFFF;
+}
+
+.openIcon {
+  width: 16px;
+  height: 16px;
+  fill: #FFFFFF;
+}
+
+.openButton:hover .openIcon {
+  fill: #000000;
+}
+.humanPrompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.humanText {
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.enterButton {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid #FFFFFF;
+  background: transparent;
+  color: #FFFFFF;
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.enterButton:hover {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+/* ==========================================================================
+   BIG WORD (Bottom, Clipped)
+   ========================================================================== */
+
+.bigWordContainer {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -8vh;
+  --bigWordNudgeY: 0px;
+
+  /* NEW: give it a real measurable width to fit text into */
+  width: 96vw;
+  max-width: 100vw;
+
+  display: flex;
+  justify-content: center;
+
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bigWord {
+  font-family: var(--font-bebas), "Bebas Neue", sans-serif;
+  /* keep your current baseline sizing as the “default” */
+  font-size: clamp(200px, 46vh, 500px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  line-height: 0.85;
+  display: inline-block;
+  max-width: 100%;
+  transform: translateY(var(--bigWordNudgeY));
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 1400px) and (min-width: 769px) {
+  .bigWordContainer {
+    bottom: 0;
+    --bigWordNudgeY: 0.14em;
+  }
+}
+
+@media (max-width: 1200px) {
+  .header {
+    padding: calc((39 / 914 * 100dvh) + env(safe-area-inset-top, 0px)) 5vw 0 5vw;
+  }
+
+  .selectorButton {
+    min-width: 140px;
+    padding: 12px 22px;
+  }
+
+  .selectorContent {
+    max-width: 80vw;
+    min-height: 92px;
+  }
+
+  .selectorCard {
+    width: min(520px, 92vw);
+  }
+
+  .bigWord {
+    font-size: clamp(150px, 40vh, 400px);
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 4vw 0 4vw;
+  }
+
+  .menuIcon {
+    top: calc(24px + env(safe-area-inset-top, 0px));
+    width: 40px;
+  }
+
+  .menuLine {
+    width: 40px;
+  }
+
+  .contactButton {
+    min-width: 120px;
+    height: 36px;
+    font-size: 10px;
+    padding: 0 16px;
+  }
+
+  .selectorRow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    padding: 6px;
+    border-radius: 18px;
+    box-sizing: border-box;
+  }
+
+  .selectorButton {
+    min-width: 0;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .selectorContent {
+    max-width: 100%;
+    min-height: 104px;
+  }
+
+  .agentNote,
+  .humanText {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+  }
+
+  .copyRow {
+    padding: 8px 12px;
+    width: 100%;
+  }
+
+  .codeInline {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    flex: 1 1 100%;
+  }
+
+  .copyButton,
+  .openButton {
+    flex: 0 0 auto;
+  }
+
+  .copyButton {
+    font-size: 10px;
+  }
+
+  .bigWord {
+    font-size: clamp(100px, 35vh, 300px);
+  }
+
+  .bigWordContainer {
+    bottom: 0;
+    --bigWordNudgeY: 0.14em;
+  }
+}
+
+@media (max-width: 480px) {
+  .brandText {
+    font-size: 14px;
+  }
+
+  .brandIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .selectorWrap {
+    row-gap: 12px;
+  }
+
+  .selectorCard {
+    padding: 16px 14px;
+    border-radius: 20px;
+    width: min(360px, 94vw);
+  }
+
+  .selectorButton {
+    min-width: 0;
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 0.07em;
+  }
+
+  .codeInline {
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .copyRow {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    width: 100%;
+  }
+
+  .openButton {
+    width: 28px;
+    height: 28px;
+  }
+
+  .openIcon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .selectorContent {
+    min-height: 118px;
+  }
+
+  .bigWord {
+    font-size: clamp(80px, 30vh, 200px);
+  }
+}

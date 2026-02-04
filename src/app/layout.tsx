@@ -1,23 +1,30 @@
-import type { Metadata } from "next";
-import { IBM_Plex_Mono, Rajdhani } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Bebas_Neue, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const display = Rajdhani({
-  variable: "--font-display",
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  variable: "--font-bebas",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const body = IBM_Plex_Mono({
-  variable: "--font-body",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Pantheon Liquidity Terminal",
   description:
     "Scan Solana liquidity across Raydium, Meteora, and PumpSwap with quant-grade visualization.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -27,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>
+      <body className={`${bebasNeue.variable} ${dmSans.variable} antialiased`}>
         {children}
       </body>
     </html>
