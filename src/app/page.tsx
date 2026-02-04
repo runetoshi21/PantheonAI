@@ -45,6 +45,12 @@ type PumpSwapPoolSnapshot = {
     quote: { amountUi: string };
   };
   spotPrice: { quotePerBase: string };
+  liquidityUsd?: {
+    solPriceUsd: string;
+    baseUsd: string;
+    quoteUsd: string;
+    totalUsd: string;
+  };
   feesBps: {
     lpFeeBps: string;
     protocolFeeBps: string;
@@ -238,12 +244,7 @@ export default function Home() {
       meteoraResult && meteoraResult.ok ? meteoraResult.data.summary.totalTvlUsd : 0;
 
     const pumpswapTvl = pumpswapPool
-      ? (() => {
-          const base = toNumber(pumpswapPool.reserves.base.amountUi) ?? 0;
-          const quote = toNumber(pumpswapPool.reserves.quote.amountUi) ?? 0;
-          const price = toNumber(pumpswapPool.spotPrice.quotePerBase) ?? 0;
-          return quote + base * price;
-        })()
+      ? toNumber(pumpswapPool.liquidityUsd?.totalUsd) ?? 0
       : 0;
 
     return {
@@ -254,10 +255,7 @@ export default function Home() {
 
   const pumpswapTvl = useMemo(() => {
     if (!pumpswapPool) return null;
-    const base = toNumber(pumpswapPool.reserves.base.amountUi) ?? 0;
-    const quote = toNumber(pumpswapPool.reserves.quote.amountUi) ?? 0;
-    const price = toNumber(pumpswapPool.spotPrice.quotePerBase) ?? 0;
-    return quote + base * price;
+    return toNumber(pumpswapPool.liquidityUsd?.totalUsd);
   }, [pumpswapPool]);
 
   const selectedDetail = useMemo(() => {
@@ -352,7 +350,7 @@ export default function Home() {
           baseReserve != null && quoteReserve != null
             ? { base: baseReserve, quote: quoteReserve }
             : null,
-        tvl: null,
+        tvl: pumpswapTvl,
         volume: null,
         apr: null,
         fee: lpFeeBps != null ? lpFeeBps / 100 : null,
@@ -360,7 +358,7 @@ export default function Home() {
     }
 
     return null;
-  }, [selected, raydiumPools, meteoraPools, pumpswapPool]);
+  }, [selected, raydiumPools, meteoraPools, pumpswapPool, pumpswapTvl]);
 
   const bandPosition = useMemo(() => {
     if (!selectedDetail?.band || selectedDetail.price == null) return null;
