@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import type { ComputeBudgetConfig, MakeTxData, Raydium } from "@raydium-io/raydium-sdk-v2";
+import type { ComputeBudgetConfig, MakeTxData, Raydium, TxVersion } from "@raydium-io/raydium-sdk-v2";
 import { getRaydiumConnection, getRaydiumReadonly, getRaydiumWithOwner, getRaydiumWithSigner } from "../raydiumClient";
 import { loadServerPayer } from "../../../config/solana";
 import { ClmmError } from "./errors";
@@ -215,7 +215,7 @@ async function buildWithdrawTransactions(params: {
   minB: BN;
   computeBudgetConfig?: ComputeBudgetConfig;
   txVersion: ReturnType<typeof resolveTxVersion>;
-}): Promise<MakeTxData[]> {
+}): Promise<Array<MakeTxData<TxVersion>>> {
   const { raydium, mode, position, poolContext, liquidityToRemove, minA, minB, computeBudgetConfig, txVersion } = params;
 
   try {
@@ -259,7 +259,7 @@ async function buildWithdrawTransactions(params: {
       txVersion
     });
 
-    const txs: MakeTxData[] = [decrease.tx];
+    const txs: Array<MakeTxData<TxVersion>> = [decrease.tx];
 
     if (closePosition && !decrease.closeIncluded) {
       const close = await buildClosePositionTx({
@@ -282,7 +282,9 @@ async function buildWithdrawTransactions(params: {
   }
 }
 
-async function executeTransactions(transactions: MakeTxData[]): Promise<WithdrawTransaction[]> {
+async function executeTransactions(
+  transactions: Array<MakeTxData<TxVersion>>
+): Promise<WithdrawTransaction[]> {
   const results: WithdrawTransaction[] = [];
 
   for (const tx of transactions) {

@@ -71,8 +71,12 @@ export async function serializeTx(params: {
 
   if (txVersion === TxVersion.LEGACY) {
     const latest = await connection.getLatestBlockhash();
-    tx.recentBlockhash = latest.blockhash;
-    const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+    const legacyTx = tx as Transaction;
+    legacyTx.recentBlockhash = latest.blockhash;
+    const serialized = legacyTx.serialize({
+      requireAllSignatures: false,
+      verifySignatures: false
+    });
     return Buffer.from(serialized).toString("base64");
   }
 
