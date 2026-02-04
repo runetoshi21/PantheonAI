@@ -68,6 +68,8 @@ export const getTotals = (
 
   const pumpswapTvl = pumpswapPool
     ? (() => {
+        const liquidityUsd = toNumber(pumpswapPool.liquidityUsd?.totalUsd);
+        if (liquidityUsd != null) return liquidityUsd;
         const base = toNumber(pumpswapPool.reserves.base.amountUi) ?? 0;
         const quote = toNumber(pumpswapPool.reserves.quote.amountUi) ?? 0;
         const price = toNumber(pumpswapPool.spotPrice.quotePerBase) ?? 0;
@@ -88,6 +90,8 @@ export const getTotals = (
 
 export const getPumpswapTvl = (pumpswapPool: PumpSwapPoolSnapshot | null): number | null => {
   if (!pumpswapPool) return null;
+  const liquidityUsd = toNumber(pumpswapPool.liquidityUsd?.totalUsd);
+  if (liquidityUsd != null) return liquidityUsd;
   const base = toNumber(pumpswapPool.reserves.base.amountUi) ?? 0;
   const quote = toNumber(pumpswapPool.reserves.quote.amountUi) ?? 0;
   const price = toNumber(pumpswapPool.spotPrice.quotePerBase) ?? 0;

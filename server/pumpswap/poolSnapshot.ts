@@ -13,6 +13,7 @@ import { BadRequestError } from "../src/core/errors";
 import type { PumpSwapPoolSnapshot, PumpSwapPoolNotFound } from "../src/types/pumpswap";
 import { divDecimalStrings, formatUnits } from "./bnFormat";
 import { selectFeesBps } from "./fees";
+import { getJupPrices } from "../raydium/jupPriceClient";
 
 const snapshotCache = new LRUCache<string, PumpSwapPoolSnapshot | PumpSwapPoolNotFound>({
   max: 500,
@@ -112,6 +113,26 @@ export async function getCanonicalPumpSwapPoolSnapshot(
     ? "0"
     : divDecimalStrings(quoteUi, baseUi, 12);
 
+  const solPrice = await getJupPrice("So11111111111111111111111111111111111111112");
+  const spotPriceNum = parseNumber(spotPrice);
+  const baseUiNum = parseNumber(baseUi);
+  const quoteUiNum = parseNumber(quoteUi);
+
+  const liquidityUsd =
+    solPrice != null && spotPriceNum != null && baseUiNum != null && quoteUiNum != null
+      ? (() => {
+          const quoteUsdValue = quoteUiNum * solPrice;
+          const baseUsdValue = baseUiNum * spotPriceNum * solPrice;
+          const totalUsdValue = quoteUsdValue + baseUsdValue;
+          return {
+            solPriceUsd: formatUsd(solPrice),
+            baseUsd: formatUsd(baseUsdValue),
+            quoteUsd: formatUsd(quoteUsdValue),
+            totalUsd: formatUsd(totalUsdValue)
+          };
+        })()
+      : undefined;
+
   const marketCapLamports = baseReserveRaw.isZero()
     ? new BN(0)
     : quoteReserveRaw.mul(baseSupplyRaw).div(baseReserveRaw);
@@ -161,6 +182,7 @@ export async function getCanonicalPumpSwapPoolSnapshot(
       quoteLamports: marketCapLamports.toString(10),
       quoteSol: formatUnits(marketCapLamports, 9)
     },
+    liquidityUsd,
     feesBps,
     configs: includeConfigs
       ? {
@@ -193,6 +215,22 @@ export async function getCanonicalPumpSwapPoolSnapshot(
 
   snapshotCache.set(mint, snapshot);
   return includeConfigs ? snapshot : stripConfigs(snapshot);
+}
+
+async function getJupPrice(mint: string): Promise<number | null> {
+  const prices = await getJupPrices([mint]);
+  const price = prices.get(mint);
+  return typeof price === "number" && Number.isFinite(price) ? price : null;
+}
+
+function formatUsd(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  return value.toFixed(2);
+}
+
+function parseNumber(value: string): number | null {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
 }
 
 function decodeGlobalConfig(accountInfo: Parameters<typeof PUMP_AMM_SDK.decodeGlobalConfig>[0]) {
