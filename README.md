@@ -1,6 +1,13 @@
 # Pantheon Liquidity Terminal
 
-Pantheon Liquidity Terminal is a Next.js UI backed by a Node/Express API for scanning Solana liquidity across Raydium, Meteora, and PumpSwap. The UI renders a depth band view and pool diagnostics while the API aggregates protocol data and exposes CLMM helpers.
+Pantheon Liquidity Terminal is a Next.js UI backed by a Node/Express API for scanning Solana liquidity across Raydium, Meteora, and PumpSwap, plus building transactions to create and manage liquidity positions.
+
+## Capabilities
+
+- Cross-protocol liquidity scanning with depth band visualization.
+- Pool diagnostics and protocol health summaries.
+- PumpSwap LP position workflows (build deposit and withdraw transactions).
+- Raydium CLMM position management (withdraw, harvest, and close with quotes).
 
 ## Repo Layout
 
@@ -52,11 +59,19 @@ Frontend API proxy (optional):
 
 ## Key Endpoints
 
+Liquidity scan:
+
 - `GET /v1/liquidity/by-mint/:mint`
 - `GET /v1/raydium/pools/by-mint/:mint`
 - `GET /v1/meteora/pools/:mint`
 - `GET /api/pumpswap/pool/:mint`
+
+Position workflows:
+
 - `POST /api/pumpswap/liquidity/deposit/build`
+- `POST /api/pumpswap/liquidity/withdraw/build`
+- `POST /v1/raydium/clmm/positions/withdraw`
+- `GET /v1/raydium/clmm/positions/:positionNftMint/withdraw-quote`
 
 ## Scripts
 
