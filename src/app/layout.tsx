@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
-import { Newsreader, Syne } from "next/font/google";
+import { IBM_Plex_Mono, Rajdhani } from "next/font/google";
 import "./globals.css";
 
-const display = Syne({
+const display = Rajdhani({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const body = Newsreader({
+const body = IBM_Plex_Mono({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Pantheon Liquidity Atlas",
+  title: "Pantheon Liquidity Terminal",
   description:
-    "Visualize liquidity ranges, build positions, and manage liquidity pools in Pantheon.",
+    "Scan Solana liquidity across Raydium, Meteora, and PumpSwap with quant-grade visualization.",
 };
 
 export default function RootLayout({

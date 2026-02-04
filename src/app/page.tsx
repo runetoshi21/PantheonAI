@@ -1,745 +1,844 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties, FormEvent } from "react";
 
-type Pool = {
+type Protocol = "raydium" | "meteora" | "pumpswap";
+
+type RaydiumPoolDto = {
   id: string;
-  name: string;
-  base: string;
-  quote: string;
-  fee: string;
-  tvl: number;
-  volume: number;
-  change: number;
-  price: number;
-  priceLow: number;
-  priceHigh: number;
-  recommendedRange: [number, number];
-  apy: number;
-  accent: string;
-  liquidity: number[];
-  depth: number[];
+  kind: string;
+  mintA: { address: string; symbol?: string; name?: string };
+  mintB: { address: string; symbol?: string; name?: string };
+  metrics: {
+    price?: string;
+    tvl?: string;
+    feeRate?: string;
+    mintAmountA?: string;
+    mintAmountB?: string;
+    volume24h?: string;
+    fee24h?: string;
+    apr24h?: string;
+  };
+  vaultBalances?: {
+    vaultA?: { amount: string };
+    vaultB?: { amount: string };
+  };
 };
 
-type Position = {
-  id: string;
-  poolId: string;
-  range: [number, number];
-  feeTier: string;
-  depositBase: string;
-  depositQuote: string;
-  status: "Active" | "Withdrawing" | "Closed";
-  createdAt: string;
+type RaydiumPoolsByMintResponseDto = {
+  inputMint: string;
+  fetchedAtUnixMs: number;
+  pools: RaydiumPoolDto[];
 };
 
-type Eip1193Provider = {
-  request: (args: { method: string }) => Promise<unknown>;
+type PumpSwapPoolSnapshot = {
+  found: true;
+  inputMint: string;
+  canonicalPool: {
+    poolKey: string;
+    baseMint: string;
+    quoteMint: string;
+  };
+  reserves: {
+    base: { amountUi: string };
+    quote: { amountUi: string };
+  };
+  spotPrice: { quotePerBase: string };
+  feesBps: {
+    lpFeeBps: string;
+    protocolFeeBps: string;
+    creatorFeeBps: string;
+  };
 };
 
-const buildLiquidity = (peak: number, skew: number, length = 36) => {
-  return Array.from({ length }, (_, i) => {
-    const x = i / (length - 1);
-    const ridge = Math.exp(-Math.pow((x - peak) / 0.18, 2));
-    const shoulder = 0.6 * Math.exp(-Math.pow((x - (peak + skew)) / 0.14, 2));
-    const wave = 0.08 * Math.sin((i + 2) * 0.7);
-    return Math.max(0.06, ridge + shoulder + wave);
-  });
+type PumpSwapPoolNotFound = {
+  found: false;
+  inputMint: string;
+  reason: string;
 };
 
-const buildDepth = (peak: number, length = 14) => {
-  return Array.from({ length }, (_, i) => {
-    const x = i / (length - 1);
-    const ridge = Math.exp(-Math.pow((x - peak) / 0.22, 2));
-    const ridgeTwo = 0.5 * Math.exp(-Math.pow((x - (peak + 0.18)) / 0.18, 2));
-    return Math.max(0.1, ridge + ridgeTwo);
-  });
+type MeteoraPool = {
+  protocol: "DLMM" | "DAMM_V1" | "DAMM_V2";
+  poolAddress: string;
+  poolName: string | null;
+  tokens: Array<{ mint: string; role: string; isInputMint: boolean }>;
+  metrics: {
+    tvlUsd: number | null;
+    volume24hUsd: number | null;
+    fees24hUsd: number | null;
+    apr24h: number | null;
+    apy24h: number | null;
+  };
+  liquidity: {
+    reserves: Array<{ mint: string; amount: string; amountUsd: string | null }>;
+  };
+  setup: {
+    fee: { baseFee: string | null; maxFee: string | null; protocolFee: string | null };
+    binStep: number | null;
+    currentPrice: number | null;
+    tags: string[];
+  };
 };
 
-const POOLS: Pool[] = [
-  {
-    id: "pump-sol",
-    name: "PUMP / SOL",
-    base: "PUMP",
-    quote: "SOL",
-    fee: "0.30%",
-    tvl: 12800000,
-    volume: 5380000,
-    change: 8.4,
-    price: 0.0314,
-    priceLow: 0.008,
-    priceHigh: 0.082,
-    recommendedRange: [22, 78],
-    apy: 92,
-    accent: "#E57A3B",
-    liquidity: buildLiquidity(0.46, 0.12),
-    depth: buildDepth(0.48),
-  },
-  {
-    id: "aura-usdc",
-    name: "AURA / USDC",
-    base: "AURA",
-    quote: "USDC",
-    fee: "0.05%",
-    tvl: 8700000,
-    volume: 2940000,
-    change: -3.2,
-    price: 1.48,
-    priceLow: 0.62,
-    priceHigh: 2.4,
-    recommendedRange: [34, 64],
-    apy: 41,
-    accent: "#1B6B62",
-    liquidity: buildLiquidity(0.42, 0.18),
-    depth: buildDepth(0.36),
-  },
-  {
-    id: "zen-sol",
-    name: "ZEN / SOL",
-    base: "ZEN",
-    quote: "SOL",
-    fee: "1.00%",
-    tvl: 4200000,
-    volume: 1680000,
-    change: 14.6,
-    price: 0.0048,
-    priceLow: 0.0014,
-    priceHigh: 0.0098,
-    recommendedRange: [18, 58],
-    apy: 148,
-    accent: "#8C5E2A",
-    liquidity: buildLiquidity(0.33, 0.22),
-    depth: buildDepth(0.3),
-  },
-  {
-    id: "io-usdc",
-    name: "IO / USDC",
-    base: "IO",
-    quote: "USDC",
-    fee: "0.01%",
-    tvl: 15600000,
-    volume: 7640000,
-    change: 2.1,
-    price: 4.83,
-    priceLow: 3.1,
-    priceHigh: 6.2,
-    recommendedRange: [40, 70],
-    apy: 26,
-    accent: "#0F3E4A",
-    liquidity: buildLiquidity(0.58, 0.08),
-    depth: buildDepth(0.6),
-  },
-];
+type MeteoraResult = {
+  mint: string;
+  cluster: string;
+  fetchedAt: string;
+  summary: {
+    totalPools: number;
+    byProtocol: { DLMM: number; DAMM_V2: number; DAMM_V1: number };
+    totalTvlUsd: number;
+  };
+  pools: MeteoraPool[];
+  errors: Array<{ protocol: string; message: string }>;
+};
 
-const FEE_TIERS = ["0.01%", "0.05%", "0.30%", "1.00%"];
+type LiquidityProtocolResult =
+  | { protocol: "raydium"; ok: true; data: RaydiumPoolsByMintResponseDto }
+  | { protocol: "raydium"; ok: false; error: string }
+  | { protocol: "pumpswap"; ok: true; data: PumpSwapPoolSnapshot | PumpSwapPoolNotFound }
+  | { protocol: "pumpswap"; ok: false; error: string }
+  | { protocol: "meteora"; ok: true; data: MeteoraResult }
+  | { protocol: "meteora"; ok: false; error: string };
 
-const formatCompact = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(value);
+type LiquidityOverviewResponse = {
+  inputMint: string;
+  fetchedAtUnixMs: number;
+  results: LiquidityProtocolResult[];
+};
 
-const formatPrice = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: value < 1 ? 4 : 2,
-    maximumFractionDigits: value < 1 ? 4 : 2,
-  }).format(value);
+type SelectedPool = { protocol: Protocol; id: string };
+
+type DepthBand = {
+  min: number;
+  max: number;
+  impactPct: number;
+};
+
+const protocolMeta: Record<Protocol, { label: string; accent: string }> = {
+  raydium: { label: "Raydium", accent: "#2be3a1" },
+  meteora: { label: "Meteora", accent: "#f5b73a" },
+  pumpswap: { label: "PumpSwap", accent: "#f05d5d" },
+};
+
+const defaultProtocols: Record<Protocol, boolean> = {
+  raydium: true,
+  meteora: true,
+  pumpswap: true,
+};
+
+const compact = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+
+const formatUsd = (value: number | null) =>
+  value == null ? "—" : `$${compact.format(value)}`;
+
+const formatNumber = (value: number | null, digits = 4) =>
+  value == null ? "—" : value.toFixed(value < 1 ? digits : 2);
+
+const formatPercent = (value: number | null) =>
+  value == null ? "—" : `${value.toFixed(2)}%`;
+
+const shortMint = (mint: string) =>
+  mint.length <= 10
+    ? mint
+    : `${mint.slice(0, 4)}…${mint.slice(mint.length - 4)}`;
+
+const toNumber = (value: unknown): number | null => {
+  if (value == null) return null;
+  const num = typeof value === "string" ? Number(value) : Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const computeDepthBand = (
+  baseReserve: number | null,
+  quoteReserve: number | null,
+  impact = 0.02,
+): DepthBand | null => {
+  if (!baseReserve || !quoteReserve) return null;
+  if (baseReserve <= 0 || quoteReserve <= 0) return null;
+  const k = baseReserve * quoteReserve;
+  const down = k / Math.pow(baseReserve * (1 + impact), 2);
+  const up = Math.pow(quoteReserve * (1 + impact), 2) / k;
+  return { min: down, max: up, impactPct: impact * 100 };
+};
 
 export default function Home() {
-  const [selectedPoolId, setSelectedPoolId] = useState(POOLS[0].id);
-  const selectedPool = POOLS.find((pool) => pool.id === selectedPoolId) ??
-    POOLS[0];
-  const [range, setRange] = useState<[number, number]>(
-    selectedPool.recommendedRange,
+  const [mintInput, setMintInput] = useState("");
+  const [protocols, setProtocols] = useState(defaultProtocols);
+  const [cluster, setCluster] = useState("mainnet-beta");
+  const [minTvlUsd, setMinTvlUsd] = useState("5000");
+  const [overview, setOverview] = useState<LiquidityOverviewResponse | null>(null);
+  const [selected, setSelected] = useState<SelectedPool | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const activeProtocols = useMemo(
+    () =>
+      (Object.keys(protocols) as Protocol[]).filter((key) => protocols[key]),
+    [protocols],
   );
-  const [feeTier, setFeeTier] = useState(FEE_TIERS[2]);
-  const [baseAmount, setBaseAmount] = useState("1200");
-  const [quoteAmount, setQuoteAmount] = useState("32.5");
-  const [wallet, setWallet] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [positions, setPositions] = useState<Position[]>([
-    {
-      id: "pos-1",
-      poolId: "pump-sol",
-      range: [0.018, 0.052],
-      feeTier: "0.30%",
-      depositBase: "8,500 PUMP",
-      depositQuote: "21.4 SOL",
-      status: "Active",
-      createdAt: "2 days ago",
-    },
-    {
-      id: "pos-2",
-      poolId: "aura-usdc",
-      range: [1.22, 1.62],
-      feeTier: "0.05%",
-      depositBase: "1,400 AURA",
-      depositQuote: "2,100 USDC",
-      status: "Active",
-      createdAt: "7 hours ago",
-    },
-  ]);
-  const positionCounter = useRef(2);
+
+  const raydiumResult = useMemo(
+    () => overview?.results.find((res) => res.protocol === "raydium") ?? null,
+    [overview],
+  );
+  const meteoraResult = useMemo(
+    () => overview?.results.find((res) => res.protocol === "meteora") ?? null,
+    [overview],
+  );
+  const pumpswapResult = useMemo(
+    () => overview?.results.find((res) => res.protocol === "pumpswap") ?? null,
+    [overview],
+  );
+
+  const raydiumPools = useMemo(
+    () => (raydiumResult && raydiumResult.ok ? raydiumResult.data.pools : []),
+    [raydiumResult],
+  );
+  const meteoraPools = useMemo(
+    () => (meteoraResult && meteoraResult.ok ? meteoraResult.data.pools : []),
+    [meteoraResult],
+  );
+  const pumpswapPool = useMemo(
+    () =>
+      pumpswapResult && pumpswapResult.ok && pumpswapResult.data.found
+        ? pumpswapResult.data
+        : null,
+    [pumpswapResult],
+  );
 
   useEffect(() => {
-    setRange(selectedPool.recommendedRange);
-    setFeeTier(selectedPool.fee);
-  }, [selectedPool]);
-
-  const priceAt = (pct: number) =>
-    selectedPool.priceLow +
-    (selectedPool.priceHigh - selectedPool.priceLow) * (pct / 100);
-
-  const minPrice = priceAt(range[0]);
-  const maxPrice = priceAt(range[1]);
-  const currentPct =
-    ((selectedPool.price - selectedPool.priceLow) /
-      (selectedPool.priceHigh - selectedPool.priceLow)) *
-    100;
-
-  const chart = useMemo(() => {
-    const width = 1000;
-    const height = 260;
-    const max = Math.max(...selectedPool.liquidity);
-    const step = width / (selectedPool.liquidity.length - 1);
-    const points = selectedPool.liquidity.map((value, index) => {
-      const x = index * step;
-      const y = height - (value / max) * (height - 30) - 10;
-      return [x, y] as const;
-    });
-    const line = points
-      .map((point, index) => `${index === 0 ? "M" : "L"}${point[0]},${point[1]}`)
-      .join(" ");
-    const area = `${line} L ${width},${height} L 0,${height} Z`;
-    return { line, area };
-  }, [selectedPool]);
-
-  const handleMinChange = (value: number) => {
-    setRange(([, max]) => {
-      const nextMin = Math.min(value, max - 2);
-      return [Math.max(0, nextMin), max];
-    });
-  };
-
-  const handleMaxChange = (value: number) => {
-    setRange(([min]) => {
-      const nextMax = Math.max(value, min + 2);
-      return [min, Math.min(100, nextMax)];
-    });
-  };
-
-  const connectWallet = async () => {
-    setStatusMessage(null);
-    if (typeof window === "undefined") return;
-    const ethereum = (window as { ethereum?: Eip1193Provider }).ethereum;
-    if (!ethereum?.request) {
-      setStatusMessage("No wallet detected. Install a wallet extension.");
+    if (!overview) return;
+    if (raydiumPools.length) {
+      setSelected({ protocol: "raydium", id: raydiumPools[0].id });
       return;
     }
-    try {
-      const accounts = (await ethereum.request({
-        method: "eth_requestAccounts",
-      })) as string[];
-      setWallet(accounts?.[0] ?? null);
-      setStatusMessage("Wallet connected.");
-    } catch {
-      setStatusMessage("Connection rejected.");
-    }
-  };
-
-  const createPosition = () => {
-    if (!wallet) {
-      setStatusMessage("Connect a wallet before creating a position.");
+    if (meteoraPools.length) {
+      setSelected({ protocol: "meteora", id: meteoraPools[0].poolAddress });
       return;
     }
-    positionCounter.current += 1;
-    const newPosition: Position = {
-      id: `pos-${positionCounter.current}`,
-      poolId: selectedPool.id,
-      range: [minPrice, maxPrice],
-      feeTier,
-      depositBase: `${baseAmount} ${selectedPool.base}`,
-      depositQuote: `${quoteAmount} ${selectedPool.quote}`,
-      status: "Active",
-      createdAt: "Just now",
+    if (pumpswapPool) {
+      setSelected({ protocol: "pumpswap", id: pumpswapPool.canonicalPool.poolKey });
+      return;
+    }
+    setSelected(null);
+  }, [overview, raydiumPools, meteoraPools, pumpswapPool]);
+
+  const totals = useMemo(() => {
+    const raydiumTvl = raydiumPools.reduce((sum, pool) => {
+      const tvl = toNumber(pool.metrics.tvl);
+      return sum + (tvl ?? 0);
+    }, 0);
+
+    const meteoraTvl =
+      meteoraResult && meteoraResult.ok ? meteoraResult.data.summary.totalTvlUsd : 0;
+
+    const pumpswapTvl = pumpswapPool
+      ? (() => {
+          const base = toNumber(pumpswapPool.reserves.base.amountUi) ?? 0;
+          const quote = toNumber(pumpswapPool.reserves.quote.amountUi) ?? 0;
+          const price = toNumber(pumpswapPool.spotPrice.quotePerBase) ?? 0;
+          return quote + base * price;
+        })()
+      : 0;
+
+    return {
+      pools: raydiumPools.length + meteoraPools.length + (pumpswapPool ? 1 : 0),
+      tvl: raydiumTvl + meteoraTvl + pumpswapTvl,
     };
-    setPositions((prev) => [newPosition, ...prev]);
-    setStatusMessage("Position created. Liquidity is now active.");
-  };
+  }, [raydiumPools, meteoraPools, pumpswapPool, meteoraResult]);
 
-  const withdrawPosition = (id: string) => {
-    setPositions((prev) =>
-      prev.map((pos) =>
-        pos.id === id ? { ...pos, status: "Withdrawing" } : pos,
-      ),
-    );
-    setStatusMessage("Withdrawal queued. Funds will settle shortly.");
+  const pumpswapTvl = useMemo(() => {
+    if (!pumpswapPool) return null;
+    const base = toNumber(pumpswapPool.reserves.base.amountUi) ?? 0;
+    const quote = toNumber(pumpswapPool.reserves.quote.amountUi) ?? 0;
+    const price = toNumber(pumpswapPool.spotPrice.quotePerBase) ?? 0;
+    return quote + base * price;
+  }, [pumpswapPool]);
+
+  const selectedDetail = useMemo(() => {
+    if (!selected) return null;
+
+    if (selected.protocol === "raydium") {
+      const pool = raydiumPools.find((item) => item.id === selected.id);
+      if (!pool) return null;
+      const baseReserve =
+        toNumber(pool.vaultBalances?.vaultA?.amount) ??
+        toNumber(pool.metrics.mintAmountA);
+      const quoteReserve =
+        toNumber(pool.vaultBalances?.vaultB?.amount) ??
+        toNumber(pool.metrics.mintAmountB);
+      const price =
+        toNumber(pool.metrics.price) ??
+        (baseReserve != null && quoteReserve != null
+          ? quoteReserve / baseReserve
+          : null);
+      const band = computeDepthBand(baseReserve, quoteReserve);
+      const feeRate = toNumber(pool.metrics.feeRate);
+      return {
+        protocol: "Raydium",
+        name: `${pool.mintA.symbol ?? shortMint(pool.mintA.address)} / ${
+          pool.mintB.symbol ?? shortMint(pool.mintB.address)
+        }`,
+        address: pool.id,
+        kind: pool.kind,
+        price,
+        band,
+        baseLabel: pool.mintA.symbol ?? shortMint(pool.mintA.address),
+        quoteLabel: pool.mintB.symbol ?? shortMint(pool.mintB.address),
+        reserves:
+          baseReserve != null && quoteReserve != null
+            ? { base: baseReserve, quote: quoteReserve }
+            : null,
+        tvl: toNumber(pool.metrics.tvl),
+        volume: toNumber(pool.metrics.volume24h),
+        apr: toNumber(pool.metrics.apr24h),
+        fee: feeRate != null ? feeRate * 100 : null,
+      };
+    }
+
+    if (selected.protocol === "meteora") {
+      const pool = meteoraPools.find((item) => item.poolAddress === selected.id);
+      if (!pool) return null;
+      const baseReserve = toNumber(pool.liquidity.reserves[0]?.amount);
+      const quoteReserve = toNumber(pool.liquidity.reserves[1]?.amount);
+      const band = computeDepthBand(baseReserve, quoteReserve);
+      const price = pool.setup.currentPrice ?? null;
+      const baseLabel = shortMint(pool.liquidity.reserves[0]?.mint ?? "");
+      const quoteLabel = shortMint(pool.liquidity.reserves[1]?.mint ?? "");
+      return {
+        protocol: `Meteora ${pool.protocol}`,
+        name: pool.poolName ?? `${baseLabel} / ${quoteLabel}`,
+        address: pool.poolAddress,
+        kind: pool.protocol,
+        price,
+        band,
+        baseLabel,
+        quoteLabel,
+        reserves:
+          baseReserve != null && quoteReserve != null
+            ? { base: baseReserve, quote: quoteReserve }
+            : null,
+        tvl: pool.metrics.tvlUsd,
+        volume: pool.metrics.volume24hUsd,
+        apr: pool.metrics.apr24h,
+        fee: pool.setup.fee.baseFee ? toNumber(pool.setup.fee.baseFee) : null,
+        binStep: pool.setup.binStep,
+      };
+    }
+
+    if (selected.protocol === "pumpswap" && pumpswapPool) {
+      const baseReserve = toNumber(pumpswapPool.reserves.base.amountUi);
+      const quoteReserve = toNumber(pumpswapPool.reserves.quote.amountUi);
+      const price = toNumber(pumpswapPool.spotPrice.quotePerBase);
+      const band = computeDepthBand(baseReserve, quoteReserve);
+      const lpFeeBps = toNumber(pumpswapPool.feesBps.lpFeeBps);
+      return {
+        protocol: "PumpSwap",
+        name: `${shortMint(pumpswapPool.canonicalPool.baseMint)} / ${shortMint(
+          pumpswapPool.canonicalPool.quoteMint,
+        )}`,
+        address: pumpswapPool.canonicalPool.poolKey,
+        kind: "CPMM",
+        price,
+        band,
+        baseLabel: shortMint(pumpswapPool.canonicalPool.baseMint),
+        quoteLabel: shortMint(pumpswapPool.canonicalPool.quoteMint),
+        reserves:
+          baseReserve != null && quoteReserve != null
+            ? { base: baseReserve, quote: quoteReserve }
+            : null,
+        tvl: null,
+        volume: null,
+        apr: null,
+        fee: lpFeeBps != null ? lpFeeBps / 100 : null,
+      };
+    }
+
+    return null;
+  }, [selected, raydiumPools, meteoraPools, pumpswapPool]);
+
+  const bandPosition = useMemo(() => {
+    if (!selectedDetail?.band || selectedDetail.price == null) return null;
+    const span = selectedDetail.band.max - selectedDetail.band.min;
+    if (!Number.isFinite(span) || span <= 0) return 50;
+    const raw = ((selectedDetail.price - selectedDetail.band.min) / span) * 100;
+    return Math.min(95, Math.max(5, raw));
+  }, [selectedDetail]);
+
+  const reserveSplit = useMemo(() => {
+    if (!selectedDetail?.reserves) return null;
+    const total = selectedDetail.reserves.base + selectedDetail.reserves.quote;
+    if (!Number.isFinite(total) || total <= 0) {
+      return { basePct: 0, quotePct: 0 };
+    }
+    return {
+      basePct: (selectedDetail.reserves.base / total) * 100,
+      quotePct: (selectedDetail.reserves.quote / total) * 100,
+    };
+  }, [selectedDetail]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const mint = mintInput.trim();
+    if (!mint) {
+      setError("Enter a Solana mint address.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const params = new URLSearchParams();
+    params.set("mint", mint);
+    if (activeProtocols.length) {
+      params.set("protocols", activeProtocols.join(","));
+    }
+    params.set("meteoraCluster", cluster);
+    const minTvlValue = Number(minTvlUsd);
+    if (Number.isFinite(minTvlValue)) {
+      params.set("meteoraMinTvlUsd", String(minTvlValue));
+    }
+
+    try {
+      const response = await fetch(`/api/liquidity?${params.toString()}`);
+      const data = (await response.json()) as LiquidityOverviewResponse;
+      if (!response.ok) {
+        throw new Error((data as { message?: string }).message ?? "Failed to load");
+      }
+      setOverview(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load data.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="liquidity-shell">
-      <div className="mx-auto w-full max-w-[1280px] px-6 pb-16 pt-10">
+    <div className="terminal-shell">
+      <div className="mx-auto w-full max-w-[1320px] px-6 pt-10">
         <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ink)] text-[var(--paper)] shadow-[0_10px_30px_rgba(15,20,18,0.25)]">
-              <span className="text-lg font-[var(--font-display)]">P</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(9,12,16,0.9)] text-lg font-[var(--font-display)] text-[var(--accent)] shadow-[0_16px_40px_rgba(0,0,0,0.4)]">
+              P
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-[var(--ink-muted)]">
-                Pantheon Liquidity
+              <p className="text-xs uppercase tracking-[0.35em] text-[var(--muted)]">
+                Pantheon Liquidity Terminal
               </p>
-              <h1 className="text-3xl font-[var(--font-display)] tracking-tight text-[var(--ink)]">
-                Liquidity Atlas
+              <h1 className="text-3xl font-[var(--font-display)] tracking-tight">
+                Liquidity Range Visualizer
               </h1>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="pill">Solana Network</div>
-            <div className="pill border-[var(--accent)] text-[var(--accent)]">
-              {selectedPool.name}
-            </div>
-            <button className="btn-primary" onClick={connectWallet}>
-              {wallet ? `Connected: ${wallet.slice(0, 6)}...` : "Connect Wallet"}
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="badge">Cluster {cluster}</span>
+            {overview ? (
+              <span className="badge">
+                Fetched {new Date(overview.fetchedAtUnixMs).toLocaleTimeString()}
+              </span>
+            ) : null}
           </div>
         </header>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
-          <aside className="flex flex-col gap-4">
-            <div className="card p-5">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--ink-muted)]">
-                Pools
-              </h2>
-              <div className="mt-5 flex flex-col gap-3">
-                {POOLS.map((pool) => {
-                  const isActive = pool.id === selectedPool.id;
-                  return (
-                    <button
-                      key={pool.id}
-                      onClick={() => setSelectedPoolId(pool.id)}
-                      className={`flex w-full flex-col gap-2 rounded-2xl border px-4 py-3 text-left transition ${
-                        isActive
-                          ? "border-transparent bg-[var(--ink)] text-[var(--paper)] shadow-[0_18px_35px_rgba(14,16,15,0.35)]"
-                          : "border-black/10 bg-white/60 hover:border-black/20"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold tracking-[0.08em]">
-                          {pool.name}
-                        </span>
-                        <span
-                          className={`text-xs font-semibold ${
-                            pool.change >= 0
-                              ? "text-emerald-600"
-                              : "text-rose-600"
-                          }`}
-                        >
-                          {pool.change >= 0 ? "+" : ""}
-                          {pool.change}%
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
-                        <span>TVL {formatCompact(pool.tvl)}</span>
-                        <span>Vol {formatCompact(pool.volume)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[var(--ink-muted)]">
-                          Fee {pool.fee}
-                        </span>
-                        <span className="font-medium">
-                          {formatPrice(pool.price)}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+        <section className="panel mt-8 p-6">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4 lg:flex-row lg:items-end"
+          >
+            <div className="flex-1">
+              <label className="label">Token mint address</label>
+              <input
+                className="input mt-2"
+                placeholder="Paste Solana mint (e.g. So11111111111111111111111111111111111111112)"
+                value={mintInput}
+                onChange={(event) => setMintInput(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <span className="label">Protocols</span>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(protocolMeta) as Protocol[]).map((protocol) => (
+                  <button
+                    type="button"
+                    key={protocol}
+                    className={`toggle ${protocols[protocol] ? "active" : ""}`}
+                    onClick={() =>
+                      setProtocols((prev) => ({
+                        ...prev,
+                        [protocol]: !prev[protocol],
+                      }))
+                    }
+                  >
+                    {protocolMeta[protocol].label}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="card p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--ink-muted)]">
-                Range Stability
-              </h3>
-              <div className="mt-4 grid gap-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--ink-muted)]">
-                    Downside cushion
-                  </span>
-                  <span className="text-sm font-semibold">
-                    {Math.max(0, range[0] - currentPct).toFixed(0)}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-black/10">
-                  <div
-                    className="h-full rounded-full bg-[var(--accent-2)]"
-                    style={{
-                      width: `${Math.max(5, range[0] - currentPct)}%`,
-                    }}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--ink-muted)]">
-                    Upside cushion
-                  </span>
-                  <span className="text-sm font-semibold">
-                    {Math.max(0, currentPct - range[1]).toFixed(0)}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-black/10">
-                  <div
-                    className="h-full rounded-full bg-[var(--accent)]"
-                    style={{
-                      width: `${Math.max(5, currentPct - range[1])}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-[var(--ink-muted)]">
-                  Cushions show how far price can move before your liquidity
-                  leaves the active zone.
-                </p>
-              </div>
+            <div className="grid gap-2">
+              <span className="label">Meteora cluster</span>
+              <select
+                className="input"
+                value={cluster}
+                onChange={(event) => setCluster(event.target.value)}
+              >
+                <option value="mainnet-beta">mainnet-beta</option>
+                <option value="devnet">devnet</option>
+              </select>
             </div>
-          </aside>
+            <div className="grid gap-2">
+              <span className="label">Min TVL (USD)</span>
+              <input
+                className="input"
+                value={minTvlUsd}
+                onChange={(event) => setMinTvlUsd(event.target.value)}
+              />
+            </div>
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? "Scanning..." : "Scan Liquidity"}
+            </button>
+          </form>
 
-          <main className="flex flex-col gap-6">
-            <section className="card card-ink p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <div className="kpi">
+              <span>Protocols</span>
+              <strong>{activeProtocols.length}</strong>
+            </div>
+            <div className="kpi">
+              <span>Pools found</span>
+              <strong>{overview ? totals.pools : "—"}</strong>
+            </div>
+            <div className="kpi">
+              <span>Total TVL</span>
+              <strong>{overview ? formatUsd(totals.tvl) : "—"}</strong>
+            </div>
+            <div className="kpi">
+              <span>Status</span>
+              <strong>{loading ? "Fetching" : overview ? "Ready" : "Idle"}</strong>
+            </div>
+            {error ? <span className="text-sm text-[var(--danger)]">{error}</span> : null}
+          </div>
+        </section>
+
+        <div className="mt-10 grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+          <div className="flex flex-col gap-6">
+            <section className="panel p-6">
+              <div className="panel-header">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-white/50">
-                    Liquidity Map
-                  </p>
-                  <h2 className="mt-2 text-2xl font-[var(--font-display)] tracking-tight text-white">
-                    {selectedPool.base} / {selectedPool.quote} density curve
+                  <p className="label">Raydium</p>
+                  <h2 className="mt-1 text-lg font-[var(--font-display)]">
+                    Concentrated + CPMM pools
                   </h2>
-                  <p className="mt-1 text-sm text-white/70">
-                    Current price sits at {formatPrice(selectedPool.price)}.
-                    Highlighted band is your active range.
-                  </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <div className="stat-pill">
-                    <span>APY</span>
-                    <strong>{selectedPool.apy}%</strong>
-                  </div>
-                  <div className="stat-pill">
-                    <span>Fee tier</span>
-                    <strong>{selectedPool.fee}</strong>
-                  </div>
-                  <div className="stat-pill">
+                <span className="badge">{raydiumPools.length} pools</span>
+              </div>
+
+              {!protocols.raydium ? (
+                <div className="empty mt-4">Raydium excluded by filters.</div>
+              ) : raydiumResult && !raydiumResult.ok ? (
+                <div className="empty mt-4">{raydiumResult.error}</div>
+              ) : null}
+
+              {protocols.raydium && raydiumPools.length ? (
+                <div className="table mt-4">
+                  <div className="table-head">
+                    <span>Pool</span>
+                    <span>Price</span>
                     <span>TVL</span>
-                    <strong>{formatCompact(selectedPool.tvl)}</strong>
+                    <span>Vol 24h</span>
+                    <span>APR 24h</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <div className="relative h-[260px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/5 to-transparent">
-                  <div
-                    className="absolute inset-y-0 rounded-3xl bg-[rgba(27,107,98,0.2)]"
-                    style={{
-                      left: `${range[0]}%`,
-                      width: `${range[1] - range[0]}%`,
-                    }}
-                  />
-                  <div
-                    className="absolute inset-y-0 w-px bg-white/70"
-                    style={{ left: `${currentPct}%` }}
-                  />
-                  <div
-                    className="absolute top-4 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--ink)]"
-                    style={{ left: `calc(${currentPct}% - 26px)` }}
-                  >
-                    {formatPrice(selectedPool.price)}
-                  </div>
-                  <svg
-                    className="absolute inset-0 h-full w-full"
-                    viewBox="0 0 1000 260"
-                    preserveAspectRatio="none"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="liquidityArea"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop offset="0%" stopColor="#F6C47C" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#F6C47C" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path d={chart.area} fill="url(#liquidityArea)" />
-                    <path
-                      d={chart.line}
-                      fill="none"
-                      stroke="#F6C47C"
-                      strokeWidth="3"
-                    />
-                  </svg>
-                </div>
-
-                <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-                      Active Range
-                    </p>
-                    <div className="mt-2 grid gap-3 lg:grid-cols-2">
-                      <div className="range-chip">
-                        <span>Min</span>
-                        <strong>{formatPrice(minPrice)}</strong>
-                      </div>
-                      <div className="range-chip">
-                        <span>Max</span>
-                        <strong>{formatPrice(maxPrice)}</strong>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPool.recommendedRange.map((value, index) => (
+                  {raydiumPools.map((pool) => {
+                    const name = `${pool.mintA.symbol ?? shortMint(pool.mintA.address)} / ${
+                      pool.mintB.symbol ?? shortMint(pool.mintB.address)
+                    }`;
+                    const price = toNumber(pool.metrics.price);
+                    return (
                       <button
-                        key={`${selectedPool.id}-preset-${index}`}
-                        className="chip"
-                        onClick={() =>
-                          setRange(
-                            index === 0
-                              ? [value, range[1]]
-                              : [range[0], value],
-                          )
-                        }
-                      >
-                        {index === 0 ? "Floor" : "Ceiling"} {value}%
-                      </button>
-                    ))}
-                    <button
-                      className="chip"
-                      onClick={() => setRange([20, 80])}
-                    >
-                      Balanced 20-80
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-5">
-                  <div className="range-track">
-                    <div
-                      className="range-highlight"
-                      style={{
-                        left: `${range[0]}%`,
-                        width: `${range[1] - range[0]}%`,
-                      }}
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={range[0]}
-                      onChange={(event) =>
-                        handleMinChange(Number(event.target.value))
-                      }
-                      className="range-slider"
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={range[1]}
-                      onChange={(event) =>
-                        handleMaxChange(Number(event.target.value))
-                      }
-                      className="range-slider"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between text-xs text-white/60">
-                  <span>
-                    {formatPrice(selectedPool.priceLow)} (low)
-                  </span>
-                  <span>
-                    {formatPrice(selectedPool.priceHigh)} (high)
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            <section className="card p-6">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--ink-muted)]">
-                    Liquidity Bands
-                  </p>
-                  <h3 className="mt-2 text-xl font-[var(--font-display)]">
-                    Stabilization pressure around the range
-                  </h3>
-                </div>
-                <div className="pill border-black/10 text-[var(--ink-muted)]">
-                  Depth snapshot
-                </div>
-              </div>
-              <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
-                <div className="grid gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--ink-muted)]">
-                      Defensive buy wall
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {formatPrice(minPrice)} - {formatPrice(selectedPool.price)}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-black/10">
-                    <div
-                      className="h-full rounded-full bg-[var(--accent-2)]"
-                      style={{ width: `${Math.min(90, range[0])}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--ink-muted)]">
-                      Upside sell wall
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {formatPrice(selectedPool.price)} - {formatPrice(maxPrice)}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-black/10">
-                    <div
-                      className="h-full rounded-full bg-[var(--accent)]"
-                      style={{ width: `${Math.min(90, 100 - range[1])}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-end gap-1">
-                  {selectedPool.depth.map((value, index) => (
-                    <div
-                      key={`depth-${selectedPool.id}-${index}`}
-                      className="w-3 rounded-full bg-[var(--ink)]/80"
-                      style={{ height: `${value * 68 + 12}px` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </section>
-          </main>
-
-          <aside className="flex flex-col gap-6">
-            <section className="card p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-[var(--font-display)]">
-                  Create Position
-                </h3>
-                <div className="pill border-black/10 text-[var(--ink-muted)]">
-                  {selectedPool.fee} fee
-                </div>
-              </div>
-              <div className="mt-5 grid gap-4">
-                <label className="field">
-                  <span>Fee tier</span>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {FEE_TIERS.map((tier) => (
-                      <button
-                        key={tier}
-                        onClick={() => setFeeTier(tier)}
-                        className={`chip ${
-                          tier === feeTier ? "chip-active" : ""
+                        key={pool.id}
+                        type="button"
+                        onClick={() => setSelected({ protocol: "raydium", id: pool.id })}
+                        className={`table-row ${
+                          selected?.protocol === "raydium" && selected.id === pool.id
+                            ? "active"
+                            : ""
                         }`}
                       >
-                        {tier}
+                        <div>
+                          <div className="text-sm font-semibold">{name}</div>
+                          <div className="text-xs text-[var(--muted)]">
+                            {pool.kind.toUpperCase()} · {shortMint(pool.id)}
+                          </div>
+                        </div>
+                        <div>{formatNumber(price)}</div>
+                        <div>{formatUsd(toNumber(pool.metrics.tvl))}</div>
+                        <div>{formatUsd(toNumber(pool.metrics.volume24h))}</div>
+                        <div>{formatPercent(toNumber(pool.metrics.apr24h))}</div>
                       </button>
-                    ))}
-                  </div>
-                </label>
-                <label className="field">
-                  <span>Deposit {selectedPool.base}</span>
-                  <input
-                    value={baseAmount}
-                    onChange={(event) => setBaseAmount(event.target.value)}
-                    className="input"
-                    placeholder="0.0"
-                  />
-                </label>
-                <label className="field">
-                  <span>Deposit {selectedPool.quote}</span>
-                  <input
-                    value={quoteAmount}
-                    onChange={(event) => setQuoteAmount(event.target.value)}
-                    className="input"
-                    placeholder="0.0"
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="range-mini">
-                    <span>Min</span>
-                    <strong>{formatPrice(minPrice)}</strong>
-                  </div>
-                  <div className="range-mini">
-                    <span>Max</span>
-                    <strong>{formatPrice(maxPrice)}</strong>
-                  </div>
+                    );
+                  })}
                 </div>
-                <div className="rounded-2xl border border-black/10 bg-black/5 p-4 text-xs text-[var(--ink-muted)]">
-                  Liquidity concentrates between your range limits. Earnings are
-                  higher, but leave the range and you stop earning fees.
-                </div>
-                <button className="btn-primary w-full" onClick={createPosition}>
-                  Create Position
-                </button>
-                {statusMessage ? (
-                  <p className="text-xs text-[var(--ink-muted)]">
-                    {statusMessage}
-                  </p>
-                ) : null}
-              </div>
+              ) : protocols.raydium ? (
+                <div className="empty mt-4">No Raydium pools returned.</div>
+              ) : null}
             </section>
 
-            <section className="card p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-[var(--font-display)]">
-                  Your Positions
-                </h3>
-                <div className="pill border-black/10 text-[var(--ink-muted)]">
-                  {positions.length}
+            <section className="panel p-6">
+              <div className="panel-header">
+                <div>
+                  <p className="label">Meteora</p>
+                  <h2 className="mt-1 text-lg font-[var(--font-display)]">
+                    DLMM + DAMM liquidity
+                  </h2>
                 </div>
+                <span className="badge">{meteoraPools.length} pools</span>
               </div>
-              <div className="mt-5 grid gap-4">
-                {positions.map((position) => {
-                  const pool = POOLS.find((item) => item.id === position.poolId);
-                  return (
-                    <div
-                      key={position.id}
-                      className="rounded-2xl border border-black/10 bg-white/70 p-4"
-                    >
-                      <div className="flex items-center justify-between">
+
+              {!protocols.meteora ? (
+                <div className="empty mt-4">Meteora excluded by filters.</div>
+              ) : meteoraResult && !meteoraResult.ok ? (
+                <div className="empty mt-4">{meteoraResult.error}</div>
+              ) : null}
+
+              {protocols.meteora && meteoraPools.length ? (
+                <div className="table mt-4">
+                  <div className="table-head">
+                    <span>Pool</span>
+                    <span>Price</span>
+                    <span>TVL</span>
+                    <span>Vol 24h</span>
+                    <span>APR 24h</span>
+                  </div>
+                  {meteoraPools.map((pool) => {
+                    const base = shortMint(pool.tokens[0]?.mint ?? "");
+                    const quote = shortMint(pool.tokens[1]?.mint ?? "");
+                    const price = pool.setup.currentPrice ?? null;
+                    return (
+                      <button
+                        key={pool.poolAddress}
+                        type="button"
+                        onClick={() =>
+                          setSelected({ protocol: "meteora", id: pool.poolAddress })
+                        }
+                        className={`table-row ${
+                          selected?.protocol === "meteora" && selected.id === pool.poolAddress
+                            ? "active"
+                            : ""
+                        }`}
+                      >
                         <div>
-                          <p className="text-sm font-semibold">
-                            {pool?.name ?? "Pool"}
-                          </p>
-                          <p className="text-xs text-[var(--ink-muted)]">
-                            {position.depositBase} · {position.depositQuote}
-                          </p>
+                          <div className="text-sm font-semibold">
+                            {pool.poolName ?? `${base} / ${quote}`}
+                          </div>
+                          <div className="text-xs text-[var(--muted)]">
+                            {pool.protocol} · {shortMint(pool.poolAddress)}
+                          </div>
                         </div>
-                        <span className="pill border-black/10 text-[var(--ink-muted)]">
-                          {position.status}
-                        </span>
+                        <div>{formatNumber(price)}</div>
+                        <div>{formatUsd(pool.metrics.tvlUsd)}</div>
+                        <div>{formatUsd(pool.metrics.volume24hUsd)}</div>
+                        <div>{formatPercent(pool.metrics.apr24h)}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : protocols.meteora ? (
+                <div className="empty mt-4">No Meteora pools returned.</div>
+              ) : null}
+            </section>
+
+            <section className="panel p-6">
+              <div className="panel-header">
+                <div>
+                  <p className="label">PumpSwap</p>
+                  <h2 className="mt-1 text-lg font-[var(--font-display)]">Canonical pool</h2>
+                </div>
+                <span className="badge">{pumpswapPool ? "1 pool" : "0 pools"}</span>
+              </div>
+
+              {!protocols.pumpswap ? (
+                <div className="empty mt-4">PumpSwap excluded by filters.</div>
+              ) : pumpswapResult && !pumpswapResult.ok ? (
+                <div className="empty mt-4">{pumpswapResult.error}</div>
+              ) : null}
+
+              {protocols.pumpswap && pumpswapPool ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelected({
+                      protocol: "pumpswap",
+                      id: pumpswapPool.canonicalPool.poolKey,
+                    })
+                  }
+                  className={`table-row mt-4 ${
+                    selected?.protocol === "pumpswap" ? "active" : ""
+                  }`}
+                >
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {shortMint(pumpswapPool.canonicalPool.baseMint)} / {" "}
+                      {shortMint(pumpswapPool.canonicalPool.quoteMint)}
+                    </div>
+                    <div className="text-xs text-[var(--muted)]">
+                      {shortMint(pumpswapPool.canonicalPool.poolKey)}
+                    </div>
+                  </div>
+                  <div>{formatNumber(toNumber(pumpswapPool.spotPrice.quotePerBase))}</div>
+                  <div>{formatUsd(pumpswapTvl)}</div>
+                  <div>—</div>
+                  <div>—</div>
+                </button>
+              ) : protocols.pumpswap ? (
+                <div className="empty mt-4">
+                  {pumpswapResult && pumpswapResult.ok && !pumpswapResult.data.found
+                    ? "PumpSwap pool not found."
+                    : "No PumpSwap data."}
+                </div>
+              ) : null}
+            </section>
+          </div>
+
+          <aside className="flex flex-col gap-6">
+            <section className="panel p-6">
+              <div className="panel-header">
+                <div>
+                  <p className="label">Selected pool</p>
+                  <h2 className="mt-1 text-xl font-[var(--font-display)]">
+                    {selectedDetail?.name ?? "Awaiting selection"}
+                  </h2>
+                </div>
+                {selectedDetail ? <span className="badge">{selectedDetail.protocol}</span> : null}
+              </div>
+
+              {selectedDetail ? (
+                <div className="mt-4 grid gap-4">
+                  <div className="data-grid">
+                    <div className="kpi">
+                      <span>Current price</span>
+                      <strong>{formatNumber(selectedDetail.price)}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span>TVL</span>
+                      <strong>{formatUsd(selectedDetail.tvl)}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span>Volume 24h</span>
+                      <strong>{formatUsd(selectedDetail.volume)}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span>APR 24h</span>
+                      <strong>{formatPercent(selectedDetail.apr)}</strong>
+                    </div>
+                    <div className="kpi">
+                      <span>Fee tier</span>
+                      <strong>{formatPercent(selectedDetail.fee)}</strong>
+                    </div>
+                    {selectedDetail.binStep != null ? (
+                      <div className="kpi">
+                        <span>Bin step</span>
+                        <strong>{selectedDetail.binStep}</strong>
                       </div>
-                      <div className="mt-3 flex items-center justify-between text-xs text-[var(--ink-muted)]">
-                        <span>
-                          Range {formatPrice(position.range[0])} -{" "}
-                          {formatPrice(position.range[1])}
-                        </span>
-                        <span>{position.createdAt}</span>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <p className="label">
+                      Depth band
+                      {selectedDetail.band
+                        ? ` (±${selectedDetail.band.impactPct}% reserves)`
+                        : " (pending)"}
+                    </p>
+                    {selectedDetail.band && selectedDetail.price != null ? (
+                      <div className="range-rail mt-3">
+                        <div className="range-band" />
+                        <div
+                          className="range-marker"
+                          style={{
+                            left: `${bandPosition ?? 50}%`,
+                          }}
+                        />
                       </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="text-xs text-[var(--ink-muted)]">
-                          Fee {position.feeTier}
-                        </span>
-                        <button
-                          className="btn-ghost"
-                          onClick={() => withdrawPosition(position.id)}
-                        >
-                          Withdraw
-                        </button>
+                    ) : (
+                      <div className="empty mt-3">Not enough data to compute a band.</div>
+                    )}
+                    {selectedDetail.band ? (
+                      <div className="mt-3 flex items-center justify-between text-xs text-[var(--muted)]">
+                        <span>Min {formatNumber(selectedDetail.band.min)}</span>
+                        <span>Max {formatNumber(selectedDetail.band.max)}</span>
+                      </div>
+                    ) : null}
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      Band is derived from pool reserves to show stabilization depth. Use pool-side
+                      bin/tick distribution for precise CLMM ranges.
+                    </p>
+                  </div>
+
+                  {selectedDetail.reserves ? (
+                    <div>
+                      <p className="label">Reserve composition</p>
+                      <div className="mt-3 grid gap-2">
+                        <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+                          <span>{selectedDetail.baseLabel}</span>
+                          <span>{compact.format(selectedDetail.reserves.base)}</span>
+                        </div>
+                        <div className="spark" style={{
+                          "--spark-width": `${reserveSplit?.basePct ?? 0}%`,
+                        } as CSSProperties} />
+                        <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+                          <span>{selectedDetail.quoteLabel}</span>
+                          <span>{compact.format(selectedDetail.reserves.quote)}</span>
+                        </div>
+                        <div className="spark" style={{
+                          "--spark-width": `${reserveSplit?.quotePct ?? 0}%`,
+                        } as CSSProperties} />
                       </div>
                     </div>
-                  );
-                })}
+                  ) : null}
+
+                  <div className="text-xs text-[var(--muted)]">
+                    Pool address: {selectedDetail.address}
+                  </div>
+                </div>
+              ) : (
+                <div className="empty mt-4">Select a pool to see depth analysis.</div>
+              )}
+            </section>
+
+            <section className="panel p-6">
+              <div className="panel-header">
+                <div>
+                  <p className="label">Protocol diagnostics</p>
+                  <h2 className="mt-1 text-lg font-[var(--font-display)]">Signal health</h2>
+                </div>
+                <span className="badge">Live</span>
               </div>
+              <div className="mt-4 grid gap-3 text-sm text-[var(--muted)]">
+                <div className="flex items-center justify-between">
+                  <span>Raydium pools</span>
+                  <span>{raydiumPools.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Meteora pools</span>
+                  <span>{meteoraPools.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>PumpSwap</span>
+                  <span>{pumpswapPool ? "Online" : "No pool"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Input mint</span>
+                  <span>{overview ? shortMint(overview.inputMint) : "—"}</span>
+                </div>
+              </div>
+              <p className="mt-4 text-xs text-[var(--muted)]">
+                Results are fetched from the shared liquidity overview service. Provide a mint to
+                refresh cross-protocol coverage.
+              </p>
             </section>
           </aside>
         </div>
