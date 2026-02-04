@@ -7,6 +7,10 @@ describe("parseUiToRaw", () => {
     expect(parseUiToRaw("1", 6).toString(10)).toBe("1000000");
   });
 
+  it("parses LP decimals", () => {
+    expect(parseUiToRaw("1", 9).toString(10)).toBe("1000000000");
+  });
+
   it("parses fractional numbers", () => {
     expect(parseUiToRaw("0.000001", 6).toString(10)).toBe("1");
   });
