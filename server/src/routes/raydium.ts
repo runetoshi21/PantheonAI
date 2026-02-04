@@ -1,23 +1,12 @@
 import { Router } from "express";
 import { BadRequestError, InvalidMintError } from "../core/errors";
+import { parseBoolean, parseEnum } from "../core/query";
 import { getRaydiumPoolsByMint } from "../../raydium/raydiumPoolsService";
 
 const router = Router();
 
-type SortParam =
-  | "default"
-  | "liquidity"
-  | "volume24h"
-  | "volume7d"
-  | "volume30d"
-  | "fee24h"
-  | "fee7d"
-  | "fee30d"
-  | "apr24h"
-  | "apr7d"
-  | "apr30d";
-
-const allowedSorts: SortParam[] = [
+const poolTypes = ["all", "standard", "concentrated"] as const;
+const sortOptions = [
   "default",
   "liquidity",
   "volume24h",
@@ -28,24 +17,36 @@ const allowedSorts: SortParam[] = [
   "fee30d",
   "apr24h",
   "apr7d",
-  "apr30d"
-];
+  "apr30d",
+] as const;
+const orderOptions = ["asc", "desc"] as const;
 
 router.get("/pools/by-mint/:mint", async (req, res, next) => {
   try {
     const { mint } = req.params;
-    const poolType = parsePoolType(req.query.poolType);
-    const sort = parseSort(req.query.sort);
-    const order = parseOrder(req.query.order);
-    const includeKeys = parseBoolean(req.query.includeKeys);
-    const includeVaultBalances = parseBoolean(req.query.includeVaultBalances);
+    const poolType = parseEnum(req.query.poolType, poolTypes, {
+      label: "poolType",
+      defaultValue: "all",
+    });
+    const sort = parseEnum(req.query.sort, sortOptions, {
+      label: "sort",
+      defaultValue: "liquidity",
+    });
+    const order = parseEnum(req.query.order, orderOptions, {
+      label: "order",
+      defaultValue: "desc",
+    });
+    const includeKeys = parseBoolean(req.query.includeKeys, { defaultValue: false });
+    const includeVaultBalances = parseBoolean(req.query.includeVaultBalances, {
+      defaultValue: false,
+    });
 
     const response = await getRaydiumPoolsByMint(mint, {
       poolType,
       sort,
       order,
       includeKeys,
-      includeVaultBalances
+      includeVaultBalances,
     });
 
     res.json(response);
@@ -56,36 +57,5 @@ router.get("/pools/by-mint/:mint", async (req, res, next) => {
     return next(err);
   }
 });
-
-function parsePoolType(value: unknown): "all" | "standard" | "concentrated" {
-  if (!value) return "all";
-  const str = String(value);
-  if (str === "all" || str === "standard" || str === "concentrated") return str;
-  throw new BadRequestError(`Invalid poolType: ${str}`);
-}
-
-function parseSort(value: unknown): SortParam {
-  if (!value) return "liquidity";
-  const str = String(value) as SortParam;
-  if (!allowedSorts.includes(str)) {
-    throw new BadRequestError(`Invalid sort: ${str}`);
-  }
-  return str;
-}
-
-function parseOrder(value: unknown): "asc" | "desc" {
-  if (!value) return "desc";
-  const str = String(value);
-  if (str === "asc" || str === "desc") return str;
-  throw new BadRequestError(`Invalid order: ${str}`);
-}
-
-function parseBoolean(value: unknown): boolean {
-  if (value == null) return false;
-  const str = String(value).toLowerCase();
-  if (str === "true") return true;
-  if (str === "false") return false;
-  throw new BadRequestError(`Invalid boolean: ${str}`);
-}
 
 export const raydiumRouter = router;

@@ -1,24 +1,27 @@
 import { Router } from "express";
 import { BadRequestError } from "../core/errors";
+import { parseBoolean, parseEnum, parseNumber } from "../core/query";
 import { getMeteoraPoolsByMint, resolveDefaults } from "../../meteora";
 import type { MeteoraCluster } from "../../meteora/config";
 
 const router = Router();
 
+const clusters: MeteoraCluster[] = ["mainnet-beta", "devnet"];
+
 router.get("/pools/:mint", async (req, res, next) => {
   try {
     const { mint } = req.params;
-    const cluster = parseCluster(req.query.cluster);
+    const cluster = parseEnum(req.query.cluster, clusters, { label: "cluster" });
 
     const params = resolveDefaults({
       mint,
       cluster,
-      includeUnknown: parseBoolean(req.query.includeUnknown),
-      includeVesting: parseBoolean(req.query.includeVesting),
-      includeDlmmLocks: parseBoolean(req.query.includeDlmmLocks),
+      includeUnknown: parseBoolean(req.query.includeUnknown, { allowNumeric: true }),
+      includeVesting: parseBoolean(req.query.includeVesting, { allowNumeric: true }),
+      includeDlmmLocks: parseBoolean(req.query.includeDlmmLocks, { allowNumeric: true }),
       minTvlUsd: parseNumber(req.query.minTvlUsd),
       limitPerProtocol: parseNumber(req.query.limitPerProtocol),
-      timeoutMs: parseNumber(req.query.timeoutMs)
+      timeoutMs: parseNumber(req.query.timeoutMs),
     });
 
     const result = await getMeteoraPoolsByMint(params);
@@ -30,29 +33,5 @@ router.get("/pools/:mint", async (req, res, next) => {
     return next(err);
   }
 });
-
-function parseCluster(value: unknown): MeteoraCluster | undefined {
-  if (!value) return undefined;
-  const str = String(value);
-  if (str === "mainnet-beta" || str === "devnet") return str;
-  throw new BadRequestError(`Invalid cluster: ${str}`);
-}
-
-function parseBoolean(value: unknown): boolean | undefined {
-  if (value == null) return undefined;
-  const str = String(value).toLowerCase();
-  if (str === "true" || str === "1") return true;
-  if (str === "false" || str === "0") return false;
-  throw new BadRequestError(`Invalid boolean: ${str}`);
-}
-
-function parseNumber(value: unknown): number | undefined {
-  if (value == null || value === "") return undefined;
-  const num = Number(value);
-  if (!Number.isFinite(num)) {
-    throw new BadRequestError(`Invalid number: ${value}`);
-  }
-  return num;
-}
 
 export const meteoraRouter = router;

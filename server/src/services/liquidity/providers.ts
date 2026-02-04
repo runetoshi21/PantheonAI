@@ -4,7 +4,7 @@ import { getMeteoraPoolsByMint, resolveDefaults } from "../../../meteora";
 import type {
   LiquidityOverviewOptions,
   LiquidityProtocol,
-  LiquidityProtocolResult
+  LiquidityProtocolResult,
 } from "./types";
 
 export interface LiquidityProvider {
@@ -21,7 +21,7 @@ export const raydiumProvider: LiquidityProvider = {
     } catch (err) {
       return { protocol: "raydium", ok: false, error: formatError(err) };
     }
-  }
+  },
 };
 
 export const pumpswapProvider: LiquidityProvider = {
@@ -30,13 +30,13 @@ export const pumpswapProvider: LiquidityProvider = {
     try {
       const data = await getCanonicalPumpSwapPoolSnapshot(
         mint,
-        opts.pumpswap?.includeConfigs ?? false
+        opts.pumpswap?.includeConfigs ?? false,
       );
       return { protocol: "pumpswap", ok: true, data };
     } catch (err) {
       return { protocol: "pumpswap", ok: false, error: formatError(err) };
     }
-  }
+  },
 };
 
 export const meteoraProvider: LiquidityProvider = {
@@ -51,21 +51,23 @@ export const meteoraProvider: LiquidityProvider = {
         includeDlmmLocks: opts.meteora?.includeDlmmLocks,
         minTvlUsd: opts.meteora?.minTvlUsd,
         limitPerProtocol: opts.meteora?.limitPerProtocol,
-        timeoutMs: opts.meteora?.timeoutMs
+        timeoutMs: opts.meteora?.timeoutMs,
       });
       const data = await getMeteoraPoolsByMint(params);
       return { protocol: "meteora", ok: true, data };
     } catch (err) {
       return { protocol: "meteora", ok: false, error: formatError(err) };
     }
-  }
+  },
 };
 
 const providerMap: Record<LiquidityProtocol, LiquidityProvider> = {
   raydium: raydiumProvider,
   pumpswap: pumpswapProvider,
-  meteora: meteoraProvider
+  meteora: meteoraProvider,
 };
+
+export const availableProtocols = Object.keys(providerMap) as LiquidityProtocol[];
 
 export function resolveProviders(protocols?: LiquidityProtocol[]): LiquidityProvider[] {
   if (!protocols || protocols.length === 0) {

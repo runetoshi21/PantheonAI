@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { BadRequestError } from "../core/errors";
+import { parseBoolean } from "../core/query";
 import { getCanonicalPumpSwapPoolSnapshot } from "../../pumpswap/poolSnapshot";
 
 const router = Router();
@@ -7,9 +8,13 @@ const router = Router();
 router.get("/pool/:mint", async (req, res, next) => {
   try {
     const { mint } = req.params;
-    const includeConfigs = parseIncludeConfigs(req.query.includeConfigs);
+    const includeConfigs = parseBoolean(req.query.includeConfigs, {
+      defaultValue: false,
+      allowNumeric: true,
+      label: "includeConfigs",
+    });
 
-    const result = await getCanonicalPumpSwapPoolSnapshot(mint, includeConfigs);
+    const result = await getCanonicalPumpSwapPoolSnapshot(mint, includeConfigs ?? false);
 
     if (!result.found) {
       res.set("Cache-Control", "public, max-age=10");
@@ -25,13 +30,5 @@ router.get("/pool/:mint", async (req, res, next) => {
     return next(err);
   }
 });
-
-function parseIncludeConfigs(value: unknown): boolean {
-  if (value == null) return false;
-  const str = String(value);
-  if (str === "1" || str.toLowerCase() === "true") return true;
-  if (str === "0" || str.toLowerCase() === "false") return false;
-  throw new BadRequestError(`Invalid includeConfigs: ${str}`);
-}
 
 export const pumpswapRouter = router;
