@@ -7,8 +7,6 @@ import {
 } from "@pump-fun/pump-swap-sdk";
 import { MintLayout, NATIVE_MINT } from "@solana/spl-token";
 import {
-  ComputeBudgetProgram,
-  PublicKey,
   TransactionMessage,
   VersionedTransaction,
   type TransactionInstruction
@@ -19,22 +17,25 @@ import type {
   BuildPumpSwapDepositTxResponse
 } from "../../src/types/pumpswapLiquidity";
 import { parseUiToRaw } from "./amounts";
+import {
+  buildCanonicalPoolInfo,
+  buildComputeBudgetIxs,
+  invalidAmount,
+  parseUserAndBaseMint,
+  poolNotFound,
+  validateSlippageBps
+} from "./common";
 
 export async function buildPumpSwapDepositTx(
   req: BuildPumpSwapDepositTxRequest
 ): Promise<BuildPumpSwapDepositTxResponse> {
-  const slippageValidation = validateSlippage(req.slippageBps);
-  if (!slippageValidation.ok) return slippageValidation.error;
+  const slippageValidation = validateSlippageBps(req.slippageBps);
+  if (!slippageValidation.ok) return slippageValidation.response;
   const slippagePct = slippageValidation.slippagePct;
 
-  let userPk: PublicKey;
-  let baseMintPk: PublicKey;
-  try {
-    userPk = new PublicKey(req.user);
-    baseMintPk = new PublicKey(req.baseMint);
-  } catch {
-    return invalidPubkey("Invalid user or baseMint public key");
-  }
+  const parsedKeys = parseUserAndBaseMint(req.user, req.baseMint);
+  if (!parsedKeys.ok) return parsedKeys.response;
+  const { userPk, baseMintPk } = parsedKeys;
 
   const poolKey = canonicalPumpPoolPda(baseMintPk);
 
@@ -112,17 +113,7 @@ export async function buildPumpSwapDepositTx(
     slippagePct
   );
 
-  const cbIxs: TransactionInstruction[] = [];
-  if (req.computeBudget?.unitLimit) {
-    cbIxs.push(ComputeBudgetProgram.setComputeUnitLimit({ units: req.computeBudget.unitLimit }));
-  }
-  if (req.computeBudget?.unitPriceMicroLamports) {
-    cbIxs.push(
-      ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: req.computeBudget.unitPriceMicroLamports
-      })
-    );
-  }
+  const cbIxs: TransactionInstruction[] = buildComputeBudgetIxs(req.computeBudget);
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash(
     "confirmed"
@@ -141,16 +132,7 @@ export async function buildPumpSwapDepositTx(
     ok: true,
     user: userPk.toBase58(),
     baseMint: baseMintPk.toBase58(),
-    canonicalPool: {
-      poolKey: poolKey.toBase58(),
-      quoteMint: pool.quoteMint.toBase58(),
-      lpMint: pool.lpMint.toBase58(),
-      userLpAta: liquidityState.userPoolTokenAccount.toBase58(),
-      userBaseAta: liquidityState.userBaseTokenAccount.toBase58(),
-      userQuoteAta: liquidityState.userQuoteTokenAccount.toBase58(),
-      poolBaseVault: pool.poolBaseTokenAccount.toBase58(),
-      poolQuoteVault: pool.poolQuoteTokenAccount.toBase58()
-    },
+    canonicalPool: buildCanonicalPoolInfo({ poolKey, pool, liquidityState }),
     quote: {
       baseDecimals,
       quoteDecimals,
@@ -166,50 +148,6 @@ export async function buildPumpSwapDepositTx(
       base64,
       blockhash,
       lastValidBlockHeight
-    }
-  };
-}
-
-function validateSlippage(slippageBps: number):
-  | { ok: true; slippagePct: number }
-  | { ok: false; error: BuildPumpSwapDepositTxResponse } {
-  if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps > 10000) {
-    return {
-      ok: false,
-      error: invalidSlippage("Slippage must be an integer between 0 and 10000 bps")
-    };
-  }
-
-  const slippagePct = slippageBps / 100;
-  if (slippagePct < 0 || slippagePct > 100) {
-    return {
-      ok: false,
-      error: invalidSlippage("Slippage must be between 0% and 100%")
-    };
-  }
-
-  return { ok: true, slippagePct };
-}
-
-function invalidPubkey(message: string): BuildPumpSwapDepositTxResponse {
-  return { ok: false, error: { code: "INVALID_PUBKEY", message } };
-}
-
-function invalidSlippage(message: string): BuildPumpSwapDepositTxResponse {
-  return { ok: false, error: { code: "INVALID_SLIPPAGE", message } };
-}
-
-function invalidAmount(message: string): BuildPumpSwapDepositTxResponse {
-  return { ok: false, error: { code: "INVALID_AMOUNT", message } };
-}
-
-function poolNotFound(poolKey: PublicKey): BuildPumpSwapDepositTxResponse {
-  return {
-    ok: false,
-    error: {
-      code: "POOL_NOT_FOUND",
-      message: "Canonical pool account not found",
-      derivedPoolKey: poolKey.toBase58()
     }
   };
 }
