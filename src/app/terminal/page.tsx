@@ -14,8 +14,7 @@ import { useLiquidityOverview } from "../hooks/useLiquidityOverview";
 
 export default function Home() {
   const { state, derived, actions } = useLiquidityOverview();
-  const { mintInput, protocols, cluster, minTvlUsd, overview, selected, loading, error } =
-    state;
+  const { mintInput, protocols, minTvlUsd, overview, selected, loading, error } = state;
   const {
     activeProtocols,
     raydiumPools,
@@ -33,10 +32,7 @@ export default function Home() {
   return (
     <div className="terminal-shell">
       <div className="mx-auto w-full max-w-[1320px] px-6 pt-10">
-        <LiquidityHeader
-          cluster={cluster}
-          fetchedAtUnixMs={overview?.fetchedAtUnixMs ?? null}
-        />
+        <LiquidityHeader />
 
         <section className="panel mt-8 p-6">
           <LiquidityForm
