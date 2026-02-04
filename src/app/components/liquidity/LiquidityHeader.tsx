@@ -1,9 +1,4 @@
-type LiquidityHeaderProps = {
-  cluster: string;
-  fetchedAtUnixMs?: number | null;
-};
-
-export function LiquidityHeader({ cluster, fetchedAtUnixMs }: LiquidityHeaderProps) {
+export function LiquidityHeader() {
   return (
     <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-center gap-4">
@@ -18,14 +13,6 @@ export function LiquidityHeader({ cluster, fetchedAtUnixMs }: LiquidityHeaderPro
             Liquidity Range Visualizer
           </h1>
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="badge">Cluster {cluster}</span>
-        {fetchedAtUnixMs ? (
-          <span className="badge">
-            Fetched {new Date(fetchedAtUnixMs).toLocaleTimeString()}
-          </span>
-        ) : null}
       </div>
     </header>
   );

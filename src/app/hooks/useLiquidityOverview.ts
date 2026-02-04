@@ -6,7 +6,6 @@ import { defaultProtocols } from "../lib/liquidity/config";
 import {
   buildSelectedDetail,
   getActiveProtocols,
-  getBandPosition,
   getDefaultSelection,
   getMeteoraPools,
   getProtocolResult,
@@ -47,7 +46,6 @@ export type LiquidityDerived = {
   totals: ReturnType<typeof getTotals>;
   pumpswapTvl: ReturnType<typeof getPumpswapTvl>;
   selectedDetail: ReturnType<typeof buildSelectedDetail>;
-  bandPosition: ReturnType<typeof getBandPosition>;
   reserveSplit: ReturnType<typeof getReserveSplit>;
   protocolErrors: {
     raydium: string | null;
@@ -60,7 +58,6 @@ export type LiquidityDerived = {
 export type LiquidityActions = {
   setMintInput: (value: string) => void;
   toggleProtocol: (protocol: Protocol) => void;
-  setCluster: (value: string) => void;
   setMinTvlUsd: (value: string) => void;
   selectPool: (protocol: Protocol, id: string) => void;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -73,7 +70,7 @@ export function useLiquidityOverview(): {
 } {
   const [mintInput, setMintInput] = useState("");
   const [protocols, setProtocols] = useState(defaultProtocols);
-  const [cluster, setCluster] = useState("mainnet-beta");
+  const cluster = "mainnet-beta";
   const [minTvlUsd, setMinTvlUsd] = useState("5000");
   const [overview, setOverview] = useState<LiquidityOverviewResponse | null>(null);
   const [selected, setSelected] = useState<SelectedPool | null>(null);
@@ -110,7 +107,6 @@ export function useLiquidityOverview(): {
     [selected, raydiumPools, meteoraPools, pumpswapPool],
   );
 
-  const bandPosition = useMemo(() => getBandPosition(selectedDetail), [selectedDetail]);
   const reserveSplit = useMemo(() => getReserveSplit(selectedDetail), [selectedDetail]);
 
   const protocolErrors = useMemo(
@@ -199,7 +195,6 @@ export function useLiquidityOverview(): {
       totals,
       pumpswapTvl,
       selectedDetail,
-      bandPosition,
       reserveSplit,
       protocolErrors,
       pumpswapNotFound,
@@ -207,7 +202,6 @@ export function useLiquidityOverview(): {
     actions: {
       setMintInput,
       toggleProtocol,
-      setCluster,
       setMinTvlUsd,
       selectPool,
       handleSubmit,

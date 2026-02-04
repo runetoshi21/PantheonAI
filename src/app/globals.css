@@ -31,30 +31,7 @@ body {
   position: relative;
   min-height: 100vh;
   padding-bottom: 80px;
-  background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.08), transparent 38%),
-    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.06), transparent 40%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 30%);
-}
-
-.terminal-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 90px 90px;
-  pointer-events: none;
-  opacity: 0.4;
-}
-
-.terminal-shell::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
-  opacity: 0.3;
-  pointer-events: none;
+  background: #0f0f10;
 }
 
 .panel {
@@ -210,42 +187,6 @@ body {
 .table-row.active {
   border-color: rgba(255, 255, 255, 0.8);
   box-shadow: 0 16px 30px rgba(255, 255, 255, 0.15);
-}
-
-.range-rail {
-  position: relative;
-  height: 52px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(90deg, rgba(8, 12, 16, 0.7), rgba(12, 18, 24, 0.7));
-  overflow: hidden;
-}
-
-.range-band {
-  position: absolute;
-  inset: 12px 16px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.12));
-}
-
-.range-marker {
-  position: absolute;
-  top: 6px;
-  width: 2px;
-  height: 40px;
-  background: var(--accent);
-}
-
-.range-marker::after {
-  content: "";
-  position: absolute;
-  top: -8px;
-  left: -4px;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
 }
 
 .spark {

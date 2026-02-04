@@ -14,8 +14,7 @@ import { useLiquidityOverview } from "../hooks/useLiquidityOverview";
 
 export default function Home() {
   const { state, derived, actions } = useLiquidityOverview();
-  const { mintInput, protocols, cluster, minTvlUsd, overview, selected, loading, error } =
-    state;
+  const { mintInput, protocols, minTvlUsd, overview, selected, loading, error } = state;
   const {
     activeProtocols,
     raydiumPools,
@@ -24,32 +23,25 @@ export default function Home() {
     totals,
     pumpswapTvl,
     selectedDetail,
-    bandPosition,
     reserveSplit,
     protocolErrors,
     pumpswapNotFound,
   } = derived;
-  const { setMintInput, toggleProtocol, setCluster, setMinTvlUsd, selectPool, handleSubmit } =
-    actions;
+  const { setMintInput, toggleProtocol, setMinTvlUsd, selectPool, handleSubmit } = actions;
 
   return (
     <div className="terminal-shell">
       <div className="mx-auto w-full max-w-[1320px] px-6 pt-10">
-        <LiquidityHeader
-          cluster={cluster}
-          fetchedAtUnixMs={overview?.fetchedAtUnixMs ?? null}
-        />
+        <LiquidityHeader />
 
         <section className="panel mt-8 p-6">
           <LiquidityForm
             mintInput={mintInput}
             protocols={protocols}
-            cluster={cluster}
             minTvlUsd={minTvlUsd}
             loading={loading}
             onMintChange={setMintInput}
             onToggleProtocol={toggleProtocol}
-            onClusterChange={setCluster}
             onMinTvlUsdChange={setMinTvlUsd}
             onSubmit={handleSubmit}
           />
@@ -93,7 +85,6 @@ export default function Home() {
           <aside className="flex flex-col gap-6">
             <SelectedPoolPanel
               detail={selectedDetail}
-              bandPosition={bandPosition}
               reserveSplit={reserveSplit}
             />
             <DiagnosticsPanel

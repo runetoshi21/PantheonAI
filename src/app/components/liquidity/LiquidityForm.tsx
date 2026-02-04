@@ -5,12 +5,10 @@ import type { Protocol } from "../../lib/liquidity/types";
 type LiquidityFormProps = {
   mintInput: string;
   protocols: Record<Protocol, boolean>;
-  cluster: string;
   minTvlUsd: string;
   loading: boolean;
   onMintChange: (value: string) => void;
   onToggleProtocol: (protocol: Protocol) => void;
-  onClusterChange: (value: string) => void;
   onMinTvlUsdChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -18,12 +16,10 @@ type LiquidityFormProps = {
 export function LiquidityForm({
   mintInput,
   protocols,
-  cluster,
   minTvlUsd,
   loading,
   onMintChange,
   onToggleProtocol,
-  onClusterChange,
   onMinTvlUsdChange,
   onSubmit,
 }: LiquidityFormProps) {
@@ -52,17 +48,6 @@ export function LiquidityForm({
             </button>
           ))}
         </div>
-      </div>
-      <div className="grid gap-2">
-        <span className="label">Meteora cluster</span>
-        <select
-          className="input"
-          value={cluster}
-          onChange={(event) => onClusterChange(event.target.value)}
-        >
-          <option value="mainnet-beta">mainnet-beta</option>
-          <option value="devnet">devnet</option>
-        </select>
       </div>
       <div className="grid gap-2">
         <span className="label">Min TVL (USD)</span>

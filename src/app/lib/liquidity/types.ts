@@ -149,19 +149,12 @@ export type LiquidityOverviewResponse = {
 
 export type SelectedPool = { protocol: Protocol; id: string };
 
-export type DepthBand = {
-  min: number;
-  max: number;
-  impactPct: number;
-};
-
 export type SelectedPoolDetail = {
   protocol: string;
   name: string;
   address: string;
   kind: string;
   price: number | null;
-  band: DepthBand | null;
   baseLabel: string;
   quoteLabel: string;
   reserves: { base: number; quote: number } | null;
