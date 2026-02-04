@@ -57,12 +57,12 @@ export default function MenuModal({ open, onClose }: MenuModalProps) {
   // Mount/unmount choreography
   useEffect(() => {
     if (open) {
-      // Start rendering immediately, then flip "active" on the next frame to trigger transitions.
-      setShouldRender(true);
+      // Start rendering on the next frame, then flip "active" to trigger transitions.
       returnFocusRef.current = (document.activeElement as HTMLElement) ?? null;
 
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
+        setShouldRender(true);
         rafRef.current = requestAnimationFrame(() => setActive(true));
       });
       return;
@@ -70,7 +70,7 @@ export default function MenuModal({ open, onClose }: MenuModalProps) {
 
     // Begin exit animation
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    setActive(false);
+    rafRef.current = requestAnimationFrame(() => setActive(false));
   }, [open]);
 
   // Unmount after exit animation finishes (fallback timer for safety)
