@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { RaydiumApiError } from "./core/errors";
 import { raydiumRouter } from "./routes/raydium";
+import { raydiumClmmRouter } from "./routes/raydiumClmm";
 import { pumpswapRouter } from "./routes/pumpswap";
 import { pumpswapLiquidityRouter } from "./routes/pumpswapLiquidity";
 import { liquidityRouter } from "./routes/liquidity";
@@ -12,6 +13,7 @@ app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/v1/raydium", raydiumRouter);
+app.use("/v1/raydium/clmm", raydiumClmmRouter);
 app.use("/api/pumpswap", pumpswapRouter);
 app.use("/api/pumpswap", pumpswapLiquidityRouter);
 app.use("/v1/liquidity", liquidityRouter);
