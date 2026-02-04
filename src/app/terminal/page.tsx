@@ -26,7 +26,7 @@ export default function Home() {
     protocolErrors,
     pumpswapNotFound,
   } = derived;
-  const { setMintInput, toggleProtocol, setMinTvlUsd, selectPool, handleSubmit } = actions;
+  const { setMintInput, setMinTvlUsd, selectPool, handleSubmit } = actions;
 
   return (
     <div className="terminal-shell">
@@ -36,11 +36,9 @@ export default function Home() {
         <section className="panel mt-8 p-6">
           <LiquidityForm
             mintInput={mintInput}
-            protocols={protocols}
             minTvlUsd={minTvlUsd}
             loading={loading}
             onMintChange={setMintInput}
-            onToggleProtocol={toggleProtocol}
             onMinTvlUsdChange={setMinTvlUsd}
             onSubmit={handleSubmit}
           />
