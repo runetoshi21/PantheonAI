@@ -16,7 +16,6 @@ export default function Home() {
   const { state, derived, actions } = useLiquidityOverview();
   const { mintInput, protocols, minTvlUsd, overview, selected, loading, error } = state;
   const {
-    activeProtocols,
     raydiumPools,
     meteoraPools,
     pumpswapPool,
@@ -46,7 +45,6 @@ export default function Home() {
             onSubmit={handleSubmit}
           />
           <KpiStrip
-            activeProtocols={activeProtocols.length}
             pools={totals.pools}
             totalTvl={totals.tvl}
             loading={loading}

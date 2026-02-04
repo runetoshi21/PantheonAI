@@ -1,7 +1,6 @@
 import { formatUsd } from "../../lib/liquidity/format";
 
 type KpiStripProps = {
-  activeProtocols: number;
   pools: number;
   totalTvl: number;
   loading: boolean;
@@ -10,7 +9,6 @@ type KpiStripProps = {
 };
 
 export function KpiStrip({
-  activeProtocols,
   pools,
   totalTvl,
   loading,
@@ -19,10 +17,6 @@ export function KpiStrip({
 }: KpiStripProps) {
   return (
     <div className="mt-5 flex flex-wrap items-center gap-4">
-      <div className="kpi">
-        <span>Protocols</span>
-        <strong>{activeProtocols}</strong>
-      </div>
       <div className="kpi">
         <span>Pools found</span>
         <strong>{hasOverview ? pools : "—"}</strong>

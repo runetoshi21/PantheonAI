@@ -34,10 +34,6 @@ export function DiagnosticsPanel({
           <span>{inputMint ? shortMint(inputMint) : "—"}</span>
         </div>
       </div>
-      <p className="mt-4 text-xs text-[var(--muted)]">
-        Results are fetched from the shared liquidity overview service. Provide a mint to refresh
-        cross-protocol coverage.
-      </p>
     </Panel>
   );
 }
