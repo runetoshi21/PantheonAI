@@ -1,7 +1,6 @@
 import { BadRequestError } from "../../core/errors";
+import { availableProtocols } from "./providers";
 import type { LiquidityProtocol } from "./types";
-
-const allowedProtocols: LiquidityProtocol[] = ["raydium", "pumpswap", "meteora"];
 
 export function parseProtocols(value?: string): LiquidityProtocol[] | undefined {
   if (!value) return undefined;
@@ -13,7 +12,7 @@ export function parseProtocols(value?: string): LiquidityProtocol[] | undefined 
   if (!raw.length) return undefined;
 
   for (const protocol of raw) {
-    if (!allowedProtocols.includes(protocol as LiquidityProtocol)) {
+    if (!availableProtocols.includes(protocol as LiquidityProtocol)) {
       throw new BadRequestError(`Unknown protocol: ${protocol}`);
     }
   }
