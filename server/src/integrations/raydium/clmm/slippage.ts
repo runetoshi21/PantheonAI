@@ -44,8 +44,17 @@ export function applySlippage(params: {
   }
 
   const factor = Math.max(0, 10000 - slippageBps);
-  const minA = expectedA.muln(factor).divn(10000);
-  const minB = expectedB.muln(factor).divn(10000);
+  const initialFeeA =
+    getTransferAmountFeeV2(expectedA, poolInfo.mintA.extensions?.feeConfig, epochInfo, false).fee ??
+    new BN(0);
+  const initialFeeB =
+    getTransferAmountFeeV2(expectedB, poolInfo.mintB.extensions?.feeConfig, epochInfo, false).fee ??
+    new BN(0);
+
+  const netA = expectedA.sub(initialFeeA);
+  const netB = expectedB.sub(initialFeeB);
+  const minA = (netA.isNeg() ? new BN(0) : netA).muln(factor).divn(10000);
+  const minB = (netB.isNeg() ? new BN(0) : netB).muln(factor).divn(10000);
 
   const feeA = getTransferAmountFeeV2(minA, poolInfo.mintA.extensions?.feeConfig, epochInfo, false).fee ?? new BN(0);
   const feeB = getTransferAmountFeeV2(minB, poolInfo.mintB.extensions?.feeConfig, epochInfo, false).fee ?? new BN(0);
