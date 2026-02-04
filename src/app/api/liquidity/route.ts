@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const DEFAULT_API_BASE = "http://localhost:3000";
+const DEFAULT_API_BASE = "http://localhost:3001";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -26,12 +26,26 @@ export async function GET(request: Request) {
     const response = await fetch(target.toString(), {
       headers: { accept: "application/json" },
     });
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await response.text();
+      return NextResponse.json(
+        {
+          error: "LIQUIDITY_PROXY_INVALID_RESPONSE",
+          message: "Expected JSON from liquidity service.",
+          target: target.toString(),
+          contentType,
+          sample: text.slice(0, 200),
+        },
+        { status: 502 },
+      );
+    }
     const payload = await response.json();
     return NextResponse.json(payload, { status: response.status });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "LIQUIDITY_PROXY_ERROR", message },
+      { error: "LIQUIDITY_PROXY_ERROR", message, target: target.toString() },
       { status: 500 },
     );
   }
