@@ -24,13 +24,11 @@ export default function Home() {
     totals,
     pumpswapTvl,
     selectedDetail,
-    bandPosition,
     reserveSplit,
     protocolErrors,
     pumpswapNotFound,
   } = derived;
-  const { setMintInput, toggleProtocol, setCluster, setMinTvlUsd, selectPool, handleSubmit } =
-    actions;
+  const { setMintInput, toggleProtocol, setMinTvlUsd, selectPool, handleSubmit } = actions;
 
   return (
     <div className="terminal-shell">
@@ -44,12 +42,10 @@ export default function Home() {
           <LiquidityForm
             mintInput={mintInput}
             protocols={protocols}
-            cluster={cluster}
             minTvlUsd={minTvlUsd}
             loading={loading}
             onMintChange={setMintInput}
             onToggleProtocol={toggleProtocol}
-            onClusterChange={setCluster}
             onMinTvlUsdChange={setMinTvlUsd}
             onSubmit={handleSubmit}
           />
@@ -93,7 +89,6 @@ export default function Home() {
           <aside className="flex flex-col gap-6">
             <SelectedPoolPanel
               detail={selectedDetail}
-              bandPosition={bandPosition}
               reserveSplit={reserveSplit}
             />
             <DiagnosticsPanel

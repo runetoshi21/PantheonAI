@@ -1,5 +1,5 @@
 import { shortMint } from "./format";
-import { computeDepthBand, toNumber } from "./math";
+import { toNumber } from "./math";
 import type {
   LiquidityOverviewResponse,
   LiquidityProtocolResult,
@@ -133,7 +133,6 @@ export const buildSelectedDetail = (
     const price =
       toNumber(pool.metrics.price) ??
       (baseReserve != null && quoteReserve != null ? quoteReserve / baseReserve : null);
-    const band = computeDepthBand(baseReserve, quoteReserve);
     const feeRate = toNumber(pool.metrics.feeRate);
     return {
       protocol: "Raydium",
@@ -143,7 +142,6 @@ export const buildSelectedDetail = (
       address: pool.id,
       kind: pool.kind,
       price,
-      band,
       baseLabel: pool.mintA.symbol ?? shortMint(pool.mintA.address),
       quoteLabel: pool.mintB.symbol ?? shortMint(pool.mintB.address),
       reserves:
@@ -162,7 +160,6 @@ export const buildSelectedDetail = (
     if (!pool) return null;
     const baseReserve = toNumber(pool.liquidity.reserves[0]?.amount);
     const quoteReserve = toNumber(pool.liquidity.reserves[1]?.amount);
-    const band = computeDepthBand(baseReserve, quoteReserve);
     const price = pool.setup.currentPrice ?? null;
     const baseLabel = shortMint(pool.liquidity.reserves[0]?.mint ?? "");
     const quoteLabel = shortMint(pool.liquidity.reserves[1]?.mint ?? "");
@@ -172,7 +169,6 @@ export const buildSelectedDetail = (
       address: pool.poolAddress,
       kind: pool.protocol,
       price,
-      band,
       baseLabel,
       quoteLabel,
       reserves:
@@ -191,7 +187,6 @@ export const buildSelectedDetail = (
     const baseReserve = toNumber(pumpswapPool.reserves.base.amountUi);
     const quoteReserve = toNumber(pumpswapPool.reserves.quote.amountUi);
     const price = toNumber(pumpswapPool.spotPrice.quotePerBase);
-    const band = computeDepthBand(baseReserve, quoteReserve);
     const lpFeeBps = toNumber(pumpswapPool.feesBps.lpFeeBps);
     return {
       protocol: "PumpSwap",
@@ -201,7 +196,6 @@ export const buildSelectedDetail = (
       address: pumpswapPool.canonicalPool.poolKey,
       kind: "CPMM",
       price,
-      band,
       baseLabel: shortMint(pumpswapPool.canonicalPool.baseMint),
       quoteLabel: shortMint(pumpswapPool.canonicalPool.quoteMint),
       reserves:
@@ -216,14 +210,6 @@ export const buildSelectedDetail = (
   }
 
   return null;
-};
-
-export const getBandPosition = (detail: SelectedPoolDetail | null): number | null => {
-  if (!detail?.band || detail.price == null) return null;
-  const span = detail.band.max - detail.band.min;
-  if (!Number.isFinite(span) || span <= 0) return 50;
-  const raw = ((detail.price - detail.band.min) / span) * 100;
-  return Math.min(95, Math.max(5, raw));
 };
 
 export const getReserveSplit = (

@@ -5,15 +5,10 @@ import { Panel } from "./Panel";
 
 type SelectedPoolPanelProps = {
   detail: SelectedPoolDetail | null;
-  bandPosition: number | null;
   reserveSplit: { basePct: number; quotePct: number } | null;
 };
 
-export function SelectedPoolPanel({
-  detail,
-  bandPosition,
-  reserveSplit,
-}: SelectedPoolPanelProps) {
+export function SelectedPoolPanel({ detail, reserveSplit }: SelectedPoolPanelProps) {
   return (
     <Panel
       label="Selected pool"
@@ -50,36 +45,6 @@ export function SelectedPoolPanel({
                 <strong>{detail.binStep}</strong>
               </div>
             ) : null}
-          </div>
-
-          <div>
-            <p className="label">
-              Depth band
-              {detail.band ? ` (±${detail.band.impactPct}% reserves)` : " (pending)"}
-            </p>
-            {detail.band && detail.price != null ? (
-              <div className="range-rail mt-3">
-                <div className="range-band" />
-                <div
-                  className="range-marker"
-                  style={{
-                    left: `${bandPosition ?? 50}%`,
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="empty mt-3">Not enough data to compute a band.</div>
-            )}
-            {detail.band ? (
-              <div className="mt-3 flex items-center justify-between text-xs text-[var(--muted)]">
-                <span>Min {formatNumber(detail.band.min)}</span>
-                <span>Max {formatNumber(detail.band.max)}</span>
-              </div>
-            ) : null}
-            <p className="mt-2 text-xs text-[var(--muted)]">
-              Band is derived from pool reserves to show stabilization depth. Use pool-side
-              bin/tick distribution for precise CLMM ranges.
-            </p>
           </div>
 
           {detail.reserves ? (
