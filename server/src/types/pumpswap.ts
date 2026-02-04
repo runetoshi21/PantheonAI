@@ -24,6 +24,12 @@ export type PumpSwapPoolSnapshot = {
   baseMintSupply: { supplyRaw: string; decimals: number; supplyUi: string };
   spotPrice: { quotePerBase: string };
   marketCap: { quoteLamports: string; quoteSol: string };
+  liquidityUsd?: {
+    solPriceUsd: string;
+    baseUsd: string;
+    quoteUsd: string;
+    totalUsd: string;
+  };
   feesBps: {
     lpFeeBps: string;
     protocolFeeBps: string;
